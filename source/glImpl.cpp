@@ -3,8 +3,9 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <cstdio>
 
-#include "gfx_device_internal.h"
+#include "glImpl.h"
 #include "driver_soft.h"
 
 #ifdef _3DS
@@ -12,15 +13,6 @@
 #endif
 
 gfx_state* g_state = NULL;
-
-#define CHECK_NULL(x, ...) \
-	if(!x) return __VA_ARGS__;
-
-#define CHECK_WITHIN_BEGIN_END(x) \
-	if(g_state->withinBeginEndBlock) { \
-		setError(GL_INVALID_OPERATION); \
-		return; \
-	}
 
 extern "C" {
 
@@ -35,6 +27,14 @@ static gfx_device *gfx_get_platform_driver(gfx_state *state, int w, int h) {
 static void *gfx_platform_texture_malloc(u32 size) {
 #ifdef _3DS
 	return linearMemAlign(size, 0x80);
+#else
+	return malloc(size);
+#endif
+}
+
+static void *gfx_platform_malloc(u32 size) {
+#ifdef _3DS
+	return linearAlloc(size);
 #else
 	return malloc(size);
 #endif
@@ -76,6 +76,98 @@ void  gfxFlush(unsigned char* fb) {
 	g_state->device->flush(fb);
 }
 
+static gfx_display_list *getList(GLuint name) {
+	gfx_display_list *list = NULL;
+	for(unsigned int i = 0; i < g_state->displayLists.size(); i++) {
+		if(g_state->displayLists[i].name == name) {
+			list = &g_state->displayLists[i];
+			break;
+		}
+	}
+	return list;
+}
+
+static void executeList(gfx_display_list *list) {
+	// printf("List size: %d\n", list->commands.size());
+	for (GLuint i = 0; i < list->commands.size(); ++i) {
+		gfx_command &comm = list->commands[i];
+		// printf("CMD type: %d\n", comm.type);
+		switch (comm.type) {
+			case gfx_command::PUSH_MATRIX:
+				// printf("Call glPushMatrix\n");
+				glPushMatrix();
+				break;
+			case gfx_command::POP_MATRIX:
+				glPopMatrix();
+				break;
+			case gfx_command::MATRIX_MODE:
+				glMatrixMode(comm.enum1);
+				break;
+			case gfx_command::CLEAR_COLOR:
+				glClearColor(comm.clamp1, comm.clamp2, comm.clamp3, comm.clamp4);
+				break;
+			case gfx_command::CLEAR:
+				glClear(comm.mask1);
+				break;
+			case gfx_command::LOAD_IDENTITY:
+				glLoadIdentity();
+				break;
+			case gfx_command::BEGIN:
+				// printf("Call glBegin\n");
+				glBegin(comm.enum1);
+				break;
+			case gfx_command::END:
+				// printf("Call glEnd\n");
+				g_state->endVBOCMD = comm;
+				glEnd();
+				break;
+			case gfx_command::BIND_TEXTURE:
+				glBindTexture(comm.enum1, comm.uint1);
+				break;
+			case gfx_command::TEX_IMAGE_2D:
+				glTexImage2D(comm.enum1, comm.int1, comm.int2, comm.size1, comm.size2,
+					comm.int3, comm.enum2, comm.enum3, comm.voidp);
+				break;
+			case gfx_command::ROTATE:
+				glRotatef(comm.float1, comm.float2, comm.float3, comm.float4);
+				break;
+			case gfx_command::SCALE:
+				glScalef(comm.float1, comm.float2, comm.float3);
+				break;
+			case gfx_command::TRANSLATE:
+				glTranslatef(comm.float1, comm.float2, comm.float3);
+				break;
+			case gfx_command::ORTHO:
+				glOrtho(comm.float1, comm.float2, comm.float3, comm.float4, comm.float5, comm.float6);
+				break;
+			case gfx_command::FRUSTUM:
+				glOrtho(comm.float1, comm.float2, comm.float3, comm.float4, comm.float5, comm.float6);
+				break;
+			case gfx_command::VIEWPORT:
+				glViewport(comm.int1, comm.int2, comm.size1, comm.size2);
+				break;
+			case gfx_command::BLEND_FUNC:
+				glBlendFunc(comm.enum1, comm.enum2);
+				break;
+			case gfx_command::ENABLE:
+				glEnable(comm.enum1);
+				break;
+			case gfx_command::DISABLE:
+				glDisable(comm.enum1);
+				break;
+			case gfx_command::TEX_PARAM_I:
+				glTexParameteri(comm.enum1, comm.enum2, comm.int1);
+				break;
+			case gfx_command::SCISSOR:
+				glScissor(comm.int1, comm.int2, comm.size1, comm.size2);
+				break;
+			case gfx_command::CALL_LIST:
+				glCallList(comm.uint1);
+				break;
+		}
+	}
+}
+
 void setError(GLenum error) {
 	CHECK_NULL(g_state);
 
@@ -95,6 +187,15 @@ GLenum glGetError (void) {
 
 void glPopMatrix (void) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::POP_MATRIX;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END(g_state);
 
 	switch(g_state->matrixMode) {
@@ -130,7 +231,18 @@ void glPopMatrix (void) {
 
 void glPushMatrix (void) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::PUSH_MATRIX;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END(g_state);
+
+
 
 	switch(g_state->matrixMode) {
 		case (GL_MODELVIEW): {
@@ -168,7 +280,17 @@ void glPushMatrix (void) {
 
 void glMatrixMode (GLenum mode) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::MATRIX_MODE;
+		comm.enum1 = mode;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
 	CHECK_WITHIN_BEGIN_END(g_state);
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
 
 	switch(mode) {
 		case (GL_MODELVIEW):
@@ -206,6 +328,18 @@ void glGetIntegerv (GLenum pname, GLint *params) {
 void glClearColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
 	CHECK_NULL(g_state);
 
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::CLEAR_COLOR;
+		comm.clamp1 = red;
+		comm.clamp2 = green;
+		comm.clamp3 = blue;
+		comm.clamp4 = alpha;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	g_state->clearColor = vec4(clampf(red, 0.0f, 1.0f),
 							clampf(green, 0.0f, 1.0f),
 							clampf(blue, 0.0f, 1.0f),
@@ -214,6 +348,15 @@ void glClearColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) 
 
 void glClear (GLbitfield mask) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::CLEAR;
+		comm.mask1 = mask;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
 
 	if(mask & ~(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)) {
 		setError(GL_INVALID_VALUE);
@@ -237,6 +380,15 @@ void glClear (GLbitfield mask) {
 
 void glLoadIdentity (void) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::LOAD_IDENTITY;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END(g_state);
 
 	switch(g_state->matrixMode) {
@@ -254,6 +406,17 @@ void glLoadIdentity (void) {
 
 void glBegin( GLenum mode ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::BEGIN;
+		comm.enum1 = mode;
+		// printf("Current display list: %d\n", getList(g_state->currentDisplayList)->name);
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END(g_state);
 
 	switch(mode) {
@@ -281,6 +444,22 @@ void glBegin( GLenum mode ) {
 
 void glEnd( void ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::END;
+		comm.vdata_units = g_state->vertexBuffer.size();
+		comm.vdata = g_state->device->cache_vertex_list(&comm.vdata_size);
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+
+		if (g_state->newDisplayListMode == GL_COMPILE) {
+			g_state->vertexBuffer.clear();
+			return;
+		}
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	if(!g_state->withinBeginEndBlock) {
 		setError(GL_INVALID_OPERATION);
 		return;
@@ -290,9 +469,12 @@ void glEnd( void ) {
 
 	mat4 mvp = g_state->projectionMatrixStack[g_state->currentProjectionMatrix]
 			* g_state->modelviewMatrixStack[g_state->currentModelviewMatrix];
-	#warning "glBegin/glEnd only supports mode = GL_TRIANGLES"
 
-	g_state->device->render_vertices(mvp);
+	if (g_state->displayListCallDepth == 0) {
+		g_state->device->render_vertices(mvp);
+	} else {
+		g_state->device->render_vertices_vbo(mvp, g_state->endVBOCMD.vdata, g_state->endVBOCMD.vdata_units);
+	}
 	g_state->vertexBuffer.clear();
 }
 
@@ -389,9 +571,18 @@ void glGenTextures( GLsizei n, GLuint *textures ) {
 	}
 }
 
-
 void glBindTexture( GLenum target, GLuint texture ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::BIND_TEXTURE;
+		comm.enum1 = target;
+		comm.uint1 = texture;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
 
 	gfx_texture *text = NULL;
 	for(unsigned int i = 0; i < g_state->textures.size(); i++) {
@@ -426,9 +617,25 @@ void glBindTexture( GLenum target, GLuint texture ) {
 	g_state->currentBoundTexture = text->tname;
 }
 
-
 void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::TEX_IMAGE_2D;
+		comm.enum1 = target;
+		comm.int1 = level;
+		comm.int2 = internalFormat;
+		comm.size1 = width;
+		comm.size2 = height;
+		comm.int2 = border;
+		comm.enum2 = format;
+		comm.enum3 = type;
+		comm.voidp = (GLvoid *)pixels;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
 
 	if(target != GL_TEXTURE_2D) {
 		setError(GL_INVALID_ENUM);
@@ -586,6 +793,8 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
 void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels ) {
 	CHECK_NULL(g_state);
 
+	//TODO unbreak
+
 	if(target != GL_TEXTURE_2D) {
 		setError(GL_INVALID_ENUM);
 		return;
@@ -684,6 +893,19 @@ void glPixelStorei( GLenum pname, GLint param ) {
 
 void glRotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::ROTATE;
+		comm.float1 = angle;
+		comm.float2 = x;
+		comm.float3 = y;
+		comm.float4 = z;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END(g_state);
 
 	mat4 rotation = mat4::rotate(angle, x, y, z);
@@ -703,6 +925,18 @@ void glRotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z ) {
 
 void glTranslatef (GLfloat x, GLfloat y, GLfloat z) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::TRANSLATE;
+		comm.float1 = x;
+		comm.float2 = y;
+		comm.float3 = z;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END(g_state);
 
 	mat4 translation = mat4::translate(x, y, z);
@@ -722,6 +956,18 @@ void glTranslatef (GLfloat x, GLfloat y, GLfloat z) {
 
 void glScalef( GLfloat x, GLfloat y, GLfloat z ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::SCALE;
+		comm.float1 = x;
+		comm.float2 = y;
+		comm.float3 = z;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END(g_state);
 
 	mat4 scale = mat4::scale(x, y, z);
@@ -741,6 +987,21 @@ void glScalef( GLfloat x, GLfloat y, GLfloat z ) {
 
 void glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::ORTHO;
+		comm.float1 = left;
+		comm.float2 = right;
+		comm.float3 = bottom;
+		comm.float4 = top;
+		comm.float5 = near_val;
+		comm.float6 = far_val;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END(g_state);
 
 	if(left == right || top == bottom || near_val == far_val) {
@@ -763,9 +1024,23 @@ void glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdo
 	}
 }
 
-
 void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::FRUSTUM;
+		comm.float1 = left;
+		comm.float2 = right;
+		comm.float3 = bottom;
+		comm.float4 = top;
+		comm.float5 = zNear;
+		comm.float6 = zFar;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END(g_state);
 
 	if(left == right || top == bottom || zNear == zFar || zNear < 0.0f || zFar < 0.0f) {
@@ -790,6 +1065,19 @@ void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLflo
 
 void glViewport( GLint x, GLint y, GLsizei width, GLsizei height ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::VIEWPORT;
+		comm.int1 = x;
+		comm.int2 = y;
+		comm.size1 = width;
+		comm.size2 = height;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	if (width < 0 || height < 0) {
 		setError(GL_INVALID_VALUE);
 		return;
@@ -805,9 +1093,19 @@ void glViewport( GLint x, GLint y, GLsizei width, GLsizei height ) {
 	g_state->viewportMatrix = mat4::viewport(((float)x / w), (float)y / h,  vw / (float)w, vh / (float)h);
 }
 
-
 void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::BLEND_FUNC;
+		comm.enum1 = sfactor;
+		comm.enum2 = dfactor;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END();
 
  #warning "glBlendFunc only supports GL_SRC_ALPHA and GL_ONE_MINUS_SRC_ALPHA"
@@ -860,9 +1158,18 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
 	}
 }
 
-
 void glEnable( GLenum cap ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::ENABLE;
+		comm.enum1 = cap;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END();
 
 	switch(cap) {
@@ -891,6 +1198,16 @@ void glEnable( GLenum cap ) {
 
 void glDisable( GLenum cap ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::DISABLE;
+		comm.enum1 = cap;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
+
 	CHECK_WITHIN_BEGIN_END();
 
 	switch(cap) {
@@ -919,6 +1236,17 @@ void glDisable( GLenum cap ) {
 
 void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		gfx_command comm;
+		comm.type = gfx_command::TEX_PARAM_I;
+		comm.enum1 = target;
+		comm.enum2 = pname;
+		comm.int1 = param;
+		getList(g_state->currentDisplayList)->commands.push_back(comm);
+	}
+
+	CHECK_COMPILE_AND_EXECUTE(g_state);
 
 	switch (target) {
 		case GL_TEXTURE_2D:
@@ -1006,4 +1334,73 @@ void glScissor( GLint x, GLint y, GLsizei width, GLsizei height) {
 	g_state->scissorBox = {x, y, width, height};
 }
 
+GLuint glGenLists( GLsizei range ) {
+	CHECK_NULL(g_state, 0);
+	CHECK_WITHIN_BEGIN_END(g_state, 0);
+
+	GLuint ret = g_state->nextDisplayListName;
+	for (int i = 0; i < range; ++i) {
+		gfx_display_list list;
+		list.name = ret + i;
+		g_state->displayLists.push(list);
+	}
+	g_state->nextDisplayListName += range;
+	return ret;
+}
+
+void glNewList( GLuint list, GLenum mode ) {
+	CHECK_NULL(g_state);
+	CHECK_WITHIN_BEGIN_END(g_state);
+	CHECK_WITHIN_NEW_END(g_state);
+
+	if (list == 0) {
+		setError(GL_INVALID_VALUE);
+		return;
+	}
+
+	switch (mode) {
+		case GL_COMPILE:
+		case GL_COMPILE_AND_EXECUTE: {
+			g_state->currentDisplayList = list;
+			g_state->newDisplayListMode = mode;
+			g_state->withinNewEndListBlock = GL_TRUE;
+		} break;
+
+		default: {
+			setError(GL_INVALID_ENUM);
+			return;
+		}
+	}
+}
+
+void glEndList( void ) {
+	CHECK_NULL(g_state);
+	CHECK_WITHIN_BEGIN_END(g_state);
+
+	if (!g_state->withinNewEndListBlock) {
+		setError(GL_INVALID_OPERATION);
+		return;
+	}
+
+	//TODO out of memory
+
+	g_state->currentDisplayList = 0;
+	g_state->newDisplayListMode = GL_COMPILE_AND_EXECUTE;
+	g_state->withinNewEndListBlock = GL_FALSE;
+
+}
+void glCallList( GLuint list ) {
+	CHECK_NULL(g_state);
+
+	// if (list == 0) return;
+
+	if (g_state->displayListCallDepth > IMPL_MAX_LIST_CALL_DEPTH) return;
+
+	gfx_display_list *clist = getList(list);
+	// if (clist) {
+		++g_state->displayListCallDepth;
+		executeList(clist);
+		--g_state->displayListCallDepth;
+	// }
+}
 }

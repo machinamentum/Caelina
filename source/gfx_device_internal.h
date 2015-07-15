@@ -5,6 +5,7 @@
 
 #include "vector.h"
 #include "matrix.h"
+
 #include "glImpl.h"
 
 #ifndef _3DS
@@ -28,14 +29,14 @@ public:
 
 	sbuffer(unsigned int reserve = 128) {
 		if(reserve == 0) reserve = 128;
-		buffer = new T[reserve];;
+		buffer = (T *)linearAlloc(reserve * sizeof(T));
 		buffer_size = reserve;
 		current_index = 0;
 		reserve_block_size = reserve;
 	}
 
 	~sbuffer() {
-		if(buffer) delete[] buffer;
+		if(buffer) linearFree(buffer);
 	}
 
 	void push(const T& data) {
@@ -44,16 +45,17 @@ public:
 		}
 
 		buffer[current_index] = data;
+		// memcpy(&buffer[current_index], &data, sizeof(T));
 		current_index++;
 	}
 
 	void resize(unsigned int n_size) {
-		T* n_buf = new T[n_size];
+		T* n_buf = (T *)linearAlloc(n_size * sizeof(T));
 		for(unsigned int i = 0; i < buffer_size; i++) {
 			n_buf[i] = buffer[i];
 		}
 
-		delete[] buffer;
+		linearFree(buffer);
 		buffer = n_buf;
 		buffer_size = n_size;
 	}
@@ -139,6 +141,77 @@ struct gfx_vec4i {
 	GLint w;
 };
 
+struct gfx_command {
+	enum CMD_TYPE {
+		PUSH_MATRIX = 0,
+		POP_MATRIX = 1,
+		MATRIX_MODE = 2,
+		CLEAR_COLOR = 3,
+		CLEAR = 4,
+		LOAD_IDENTITY = 5,
+		BEGIN = 6,
+		END = 7,
+		BIND_TEXTURE = 8,
+		TEX_IMAGE_2D,
+		ROTATE,
+		SCALE,
+		TRANSLATE,
+		ORTHO,
+		FRUSTUM,
+		VIEWPORT,
+		BLEND_FUNC,
+		ENABLE,
+		DISABLE,
+		TEX_PARAM_I,
+		SCISSOR,
+		CALL_LIST,
+		NONE
+	};
+
+	CMD_TYPE type = NONE;
+	GLuint vdata_size = 0;
+	GLuint vdata_units = 0;
+	u8 *vdata = NULL;
+
+	GLenum enum1 = 0;
+	GLenum enum2 = 0;
+	GLenum enum3 = 0;
+	union {
+		GLclampf clamp1;
+		GLfloat float1;
+	};
+	union {
+		GLclampf clamp2;
+		GLfloat float2;
+	};
+	union {
+		GLclampf clamp3;
+		GLfloat float3;
+	};
+	union {
+		GLclampf clamp4;
+		GLfloat float4;
+	};
+	GLfloat float5;
+	GLfloat float6;
+	GLbitfield mask1;
+	GLuint uint1;
+	GLint int1;
+	GLint int2;
+	GLint int3;
+	GLsizei size1;
+	GLsizei size2;
+	GLvoid *voidp = NULL;
+
+};
+
+#include <vector>
+
+struct gfx_display_list {
+	GLuint name;
+	std::vector<gfx_command> commands;
+};
+
 struct gfx_state {
 	//TODO(josh) make gfx_device an interface to allow hardware devices
 	gfx_device* device;
@@ -182,6 +255,14 @@ struct gfx_state {
 
 	mat4 viewportMatrix;
 
+	sbuffer<gfx_display_list> displayLists;
+	GLuint nextDisplayListName = 1;
+	GLboolean withinNewEndListBlock = GL_FALSE;
+	GLenum newDisplayListMode = GL_COMPILE_AND_EXECUTE;
+	GLuint currentDisplayList = 0; //for compiling only
+	GLuint displayListCallDepth = 0;
+	gfx_command endVBOCMD;
+
 };
 
 class gfx_device {
@@ -203,7 +284,9 @@ public:
 	virtual void clearDepth(GLdouble depth) = 0;
 	virtual void flush(u8 *fb) = 0;
 	virtual void render_vertices(const mat4& mvp) = 0;
+	virtual void render_vertices_vbo(const mat4& mvp, u8 *data, GLuint units) = 0;
 	virtual void repack_texture(gfx_texture &tex) {}
+	virtual u8 *cache_vertex_list(GLuint *size) = 0;
 
 	int getWidth() {
 		return width;

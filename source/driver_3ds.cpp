@@ -1,4 +1,3 @@
-
 #include "driver_3ds.h"
 #include <3ds.h>
 
@@ -37,7 +36,7 @@ struct VBO {
    }
 
    ~VBO() {
-      linearFree(data);
+      // linearFree(data);
    }
 
    int set_data(sbuffer<vertex>& vdat, bool color) {
@@ -57,10 +56,6 @@ struct VBO {
       return 0;
    }
 
-};
-
-extern "C" {
-	void set_attr(u32 *loc);
 };
 
 #undef GPUCMD_AddSingleParam
@@ -116,9 +111,8 @@ void GPU_SetDummyTexEnv(u8 num)
 gfx_device_3ds::gfx_device_3ds(gfx_state *state, int w, int h) : gfx_device(state, w, h) {
    GPU_Init(NULL);
    gpuCmd = (u32*)linearAlloc(gpuCmdSize*4);
-   gpuCmdRight = (u32*)linearAlloc(gpuCmdSize*4);
-   gpuOut=(u32*)vramMemAlign(height*240*8, 0x100);;
-   gpuDOut=(u32*)vramMemAlign(height*240*8, 0x100);;
+   gpuOut=(u32*)vramMemAlign(height*width*8, 0x100);;
+   gpuDOut=(u32*)vramMemAlign(height*height*8, 0x100);;
    GPU_Reset(NULL, gpuCmd, gpuCmdSize);
 
    dvlb=DVLB_ParseFile((u32*)default_3ds_vsh_shbin, default_3ds_vsh_shbin_size);
@@ -198,6 +192,8 @@ static GPU_BLENDFACTOR gl_blendfactor(GLenum factor) {
 		case GL_ONE_MINUS_CONSTANT_ALPHA: return GPU_ONE_MINUS_CONSTANT_ALPHA;
 		case GL_SRC_ALPHA_SATURATE: return GPU_SRC_ALPHA_SATURATE;
 	}
+
+	return GPU_ONE;
 }
 
 static GPU_Primitive_t gl_primitive(GLenum mode) {
@@ -207,6 +203,8 @@ static GPU_Primitive_t gl_primitive(GLenum mode) {
 		case GL_TRIANGLE_STRIP: return GPU_TRIANGLE_STRIP;
 		default: return GPU_UNKPRIM;
 	}
+
+	return GPU_UNKPRIM;
 }
 
 static GPU_TEXTURE_WRAP_PARAM gl_tex_wrap(GLenum wrap) {
@@ -215,6 +213,8 @@ static GPU_TEXTURE_WRAP_PARAM gl_tex_wrap(GLenum wrap) {
 		// case GL_MIRRORED_REPEAT: return GPU_MIRRORED_REPEAT;
 		case GL_REPEAT: return GPU_REPEAT;
 	}
+
+	return GPU_REPEAT;
 }
 
 static GPU_TEXTURE_FILTER_PARAM gl_tex_filter(GLenum filt) {
@@ -222,14 +222,29 @@ static GPU_TEXTURE_FILTER_PARAM gl_tex_filter(GLenum filt) {
 		case GL_LINEAR: return GPU_LINEAR;
 		case GL_NEAREST: return GPU_NEAREST;
 	}
+
+	return GPU_LINEAR;
 }
 
-void gfx_device_3ds::render_vertices(const mat4& mvp) {
-	GPUCMD_SetBufferOffset(0);
+static GPU_SCISSORMODE glext_scissor_mode(GLenum mode) {
+	switch (mode) {
+		case GL_SCISSOR_NORMAL_DMP: return GPU_SCISSOR_NORMAL;
+		case GL_SCISSOR_INVERT_DMP: return GPU_SCISSOR_INVERT;
+	}
+
+	return GPU_SCISSOR_DISABLE;
+}
+
+u8 *gfx_device_3ds::cache_vertex_list(GLuint *size) {
+	VBO vbo = VBO(g_state->vertexBuffer.size());
+	vbo.set_data(g_state->vertexBuffer, g_state->enableTexture2D == GL_TRUE ? false : true);
+	*size = vbo.currentSize;
+	return vbo.data;
+}
+
+void gfx_device_3ds::setup_state(const mat4& mvp) {
 	shaderProgramUse(&shader);
-	// matrix_gpu_set_uniform(ortho_matrix_top, projection_desc);
-	// float colors[4] = {1.0f, 0.0f, 1.0f, 1.0f};
-   // GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(shader.vertexShader, "colors"), (u32*)colors, 1);
+
 	float mu[4*4];
 	mat4 pica = mat4();
 	pica[0xA] = 0.5;
@@ -247,13 +262,13 @@ void gfx_device_3ds::render_vertices(const mat4& mvp) {
 
 	GPU_SetViewport((u32 *)osConvertVirtToPhys((u32)gpuDOut),
 		(u32 *)osConvertVirtToPhys((u32)gpuOut),
-		0, 0, 240, height);
+		0, 0, width, height);
 	{
 		GLint x = g_state->scissorBox.x;
 		GLint y = g_state->scissorBox.y;
 		GLint w = g_state->scissorBox.z;
 		GLint h = g_state->scissorBox.w;
-		GPU_SetScissorTest((g_state->enableScissorTest ? scissorMode : GPU_SCISSOR_DISABLE), x, y, x + w, y + h);
+		GPU_SetScissorTest((g_state->enableScissorTest ? glext_scissor_mode(ext_state.scissorMode) : GPU_SCISSOR_DISABLE), x, y, x + w, y + h);
 	}
 
 	GPU_DepthMap(-1.0f, 0.0f);
@@ -273,9 +288,7 @@ void gfx_device_3ds::render_vertices(const mat4& mvp) {
 	);
 
 	GPU_SetAlphaTest(false, GPU_ALWAYS, 0x00);
-	VBO vbo = VBO(g_state->vertexBuffer.size());
 
-	//=========================================
 	if (!g_state->enableTexture2D) {
 		GPU_SetTexEnv(
 			0,
@@ -286,7 +299,6 @@ void gfx_device_3ds::render_vertices(const mat4& mvp) {
 			GPU_REPLACE, GPU_REPLACE,
 			0xFFFFFFFF
 		);
-		vbo.set_data(g_state->vertexBuffer, true);
 	} else {
 		GPU_SetTextureEnable(GPU_TEXUNIT0);
 		GPU_SetTexEnv(0,
@@ -317,7 +329,6 @@ void gfx_device_3ds::render_vertices(const mat4& mvp) {
 				GPU_TEXTURE_WRAP_T(gl_tex_wrap(text->wrap_t)), //texture params
 				GPU_RGBA8 //texture pixel format
 			);
-			vbo.set_data(g_state->vertexBuffer, false);
 		}
 	}
 
@@ -326,7 +337,42 @@ void gfx_device_3ds::render_vertices(const mat4& mvp) {
 	GPU_SetDummyTexEnv(3);
 	GPU_SetDummyTexEnv(4);
 	GPU_SetDummyTexEnv(5);
+}
 
+void gfx_device_3ds::render_vertices_vbo(const mat4& mvp, u8 *data, GLuint units) {
+	GPUCMD_SetBufferOffset(0);
+	setup_state(mvp);
+	SetAttributeBuffers(
+		2, // number of attributes
+		(u32*)osConvertVirtToPhys((u32)data),
+		GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT),
+		0xFFFC, //0b1100
+		0x10,
+		1, //number of buffers
+		{0x0}, // buffer offsets (placeholders)
+		{0x10}, // attribute permutations for each buffer
+		{2} // number of attributes for each buffer
+	);
+
+   GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), units);
+	GPU_FinishDrawing();
+	GPUCMD_Finalize();
+	GPUCMD_FlushAndRun(NULL);
+	gspWaitForP3D();
+}
+
+void gfx_device_3ds::render_vertices(const mat4& mvp) {
+	GPUCMD_SetBufferOffset(0);
+
+	setup_state(mvp);
+	VBO vbo = VBO(g_state->vertexBuffer.size());
+
+	//=========================================
+	if (!g_state->enableTexture2D) {
+		vbo.set_data(g_state->vertexBuffer, true);
+	} else {
+		vbo.set_data(g_state->vertexBuffer, false);
+	}
 
 	SetAttributeBuffers(
 		2, // number of attributes
@@ -340,8 +386,7 @@ void gfx_device_3ds::render_vertices(const mat4& mvp) {
 		{2} // number of attributes for each buffer
 	);
 		// set_attr((u32*)osConvertVirtToPhys((u32)vbo.data));
-
-	// GSPGPU_FlushDataCache(NULL, (u8*)&g_state->vertexBuffer[0], g_state->vertexBuffer.size() * sizeof(vertex));
+	linearFree(vbo.data);
    GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), vbo.numVertices);
 	GPU_FinishDrawing();
 	GPUCMD_Finalize();
@@ -352,14 +397,11 @@ void gfx_device_3ds::render_vertices(const mat4& mvp) {
 
 void gfx_device_3ds::flush(u8 *fb) {
 
-   // u32 offset; GPUCMD_GetBuffer(NULL, NULL, &offset);
-   // memcpy(gpuCmdRight, gpuCmd, offset*4);
-   // /we wait for the left buffer to finish drawing
-   // GX_SetDisplayTransfer(NULL, (u32*)gpuOut, GX_BUFFER_DIM(240*2, width), (u32 *)fb, GX_BUFFER_DIM(240*2, width), DISPLAY_TRANSFER_FLAGS);
-	GX_SetDisplayTransfer(NULL, (u32*)gpuOut, GX_BUFFER_DIM(240, height),
+   GX_SetDisplayTransfer(NULL, (u32*)gpuOut, GX_BUFFER_DIM(width, height),
 		(u32*)fb,
-		GX_BUFFER_DIM(240, height), 0x1000);
+		GX_BUFFER_DIM(width, height), 0x1000);
 }
+
 #define RGBA8(r,g,b,a) ((((r)&0xFF)<<24) | (((g)&0xFF)<<16) | (((b)&0xFF)<<8) | (((a)&0xFF)<<0))
 void gfx_device_3ds::clear(u8 r, u8 g, u8 b, u8 a) {
 
