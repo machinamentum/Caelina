@@ -26,23 +26,19 @@ struct VBO {
     u32 currentSize; // in bytes
     u32 maxSize; // in bytes
     u32 numVertices;
-    u32* commands;
-    u32 commandsSize;
 
     VBO(u32 size) {
         data = (u8 *)linearAlloc(size * sizeof(_3ds_vertex));
         currentSize = 0;
         maxSize = size;
         numVertices = 0;
-        commands = NULL;
-        commandsSize = 0;
     }
 
     ~VBO() {
-        // linearFree(data);
+
     }
 
-    int set_data(sbuffer<vertex>& vdat, bool color) {
+    int set_data(sbuffer<vertex>& vdat) {
         _3ds_vertex *ver = (_3ds_vertex *)data;
         for (int i = 0; i < vdat.size(); ++i) {
             ver[i].color = vec4(vdat[i].color);
@@ -222,7 +218,7 @@ static GPU_SCISSORMODE glext_scissor_mode(GLenum mode) {
 
 u8 *gfx_device_3ds::cache_vertex_list(GLuint *size) {
     VBO vbo = VBO(g_state->vertexBuffer.size());
-    vbo.set_data(g_state->vertexBuffer, g_state->enableTexture2D == GL_TRUE ? false : true);
+    vbo.set_data(g_state->vertexBuffer);
     *size = vbo.currentSize;
     return vbo.data;
 }
@@ -438,12 +434,8 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     setup_state(projection, modelview);
     VBO vbo = VBO(g_state->vertexBuffer.size());
 
-    if (!g_state->enableTexture2D) {
-        vbo.set_data(g_state->vertexBuffer, true);
-    } else {
-        vbo.set_data(g_state->vertexBuffer, false);
-    }
-    
+    vbo.set_data(g_state->vertexBuffer);
+
     SetAttributeBuffers(
                         4,
                         (u32*)osConvertVirtToPhys((u32)vbo.data),
