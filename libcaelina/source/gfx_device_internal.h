@@ -29,14 +29,14 @@ public:
 
     sbuffer(unsigned int reserve = 2048) {
         if(reserve == 0) reserve = 2048;
-        buffer = (T *)linearAlloc(reserve * sizeof(T));
+        buffer = new T[reserve];
         buffer_size = reserve;
         current_index = 0;
         reserve_block_size = reserve;
     }
 
     ~sbuffer() {
-        if(buffer) linearFree(buffer);
+        if(buffer) delete[] buffer;
     }
 
     void push(const T& data) {
@@ -49,12 +49,12 @@ public:
     }
 
     void resize(unsigned int n_size) {
-        T* n_buf = (T *)linearAlloc(n_size * sizeof(T));
+        T* n_buf = new T[n_size];
         for(unsigned int i = 0; i < buffer_size; i++) {
             n_buf[i] = buffer[i];
         }
 
-        linearFree(buffer);
+        delete[] buffer;
         buffer = n_buf;
         buffer_size = n_size;
     }

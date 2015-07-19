@@ -69,7 +69,7 @@ class gfx_device_3ds : public gfx_device {
     shaderProgram_s shader;
     shaderProgram_s vertex_lighting_shader;
     DVLB_s* dvlb;
-    VBO temp_vbo = VBO(0x1F400); // approx ~128,000 vertices
+    VBO temp_vbo = VBO(10000); // approx ~10,000 vertices
 
     void setup_state(const mat4& projection, const mat4& modelview);
 
