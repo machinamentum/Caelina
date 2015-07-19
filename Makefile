@@ -15,11 +15,15 @@ include $(DEVKITARM)/3ds_rules
 # DATA is a list of directories containing data files
 # INCLUDES is a list of directories containing header files
 #---------------------------------------------------------------------------------
-TARGET		:=	$(shell basename $(CURDIR))
+TARGET		:=	caelina
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	include
+
+GIT_BRANCH	:=	$(shell git rev-parse --abbrev-ref HEAD)
+GIT_COMMIT	:=	$(shell git rev-parse --short HEAD)
+VERSION		:=	$(GIT_BRANCH)-$(GIT_COMMIT)
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -85,6 +89,13 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 #---------------------------------------------------------------------------------
 all: $(BUILD)
 
+dist-bin: all
+	@tar -cjf libcaelina-$(VERSION).tar.bz2 include lib
+
+install: dist-bin
+	mkdir -p $(DEVKITPRO)/libctru
+	bzip2 -cd libcaelina-$(VERSION).tar.bz2 | tar -x -C $(DEVKITPRO)/libctru
+
 lib:
 	@[ -d $@ ] || mkdir -p $@
 
@@ -95,7 +106,7 @@ $(BUILD): lib
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) lib
+	@rm -fr $(BUILD) lib libcaelina-$(VERSION).tar.bz2
 
 #---------------------------------------------------------------------------------
 else
