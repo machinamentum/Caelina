@@ -185,18 +185,16 @@ public:
     }
 
     static mat4 rotate(double degrees, float tx, float ty, float tz) {
-        //const float epsilon = 0.00001;
         mat4 result;
         float x = tx, y = ty, z = tz;
         float length = std::sqrt(x * x + y * y + z * z);
-        if(length == 0.0f) return 0;//NOTE(josh) use length == 0.0?
+        if(length == 0.0f) return 0;//NOTE use length == 0.0?
         x /= length;
         y /= length;
         z /= length;
 
         double angle = degrees * (3.14159265359 / 180.0);
         double c = std::cos(angle);
-        //		if(c < epsilon && c > -epsilon) c = 0.0f;
         float omc = 1.0f - c;
         float s = sin(angle);
 

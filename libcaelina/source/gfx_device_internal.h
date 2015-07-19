@@ -45,7 +45,6 @@ public:
         }
 
         buffer[current_index] = data;
-        // memcpy(&buffer[current_index], &data, sizeof(T));
         current_index++;
     }
 
@@ -113,11 +112,10 @@ struct gfx_texture {
     GLsizei width;
     GLsizei height;
     GLenum format;
-    GLenum min_filter = GL_NEAREST_MIPMAP_LINEAR;//TODO
+    GLenum min_filter = GL_NEAREST_MIPMAP_LINEAR;//TODO implement mipmaps
     GLenum mag_filter = GL_LINEAR;
     GLenum wrap_s = GL_REPEAT;
     GLenum wrap_t = GL_REPEAT;
-    //TODO(josh)
 
     gfx_texture(GLuint name = 0, GLenum tar = 0) {
         tname = name;
@@ -225,7 +223,7 @@ struct gfx_light {
     vec4 specular = { 0.0, 0.0, 0.0, 1.0 }; // set int gfx_device();
     vec4 position = { 0.0, 0.0, 1.0, 0.0 };
     vec4 spotlightDirection = { 0.0, 0.0, -1.0, 0.0 };
-    float spotlightExpo = 0.0; //[0.0, 128.0]
+    float spotlightExpo = 0.0; // [0.0, 128.0]
     float spotlightCutoff = 180.0; // [0.0, 90.0], 180.0
     float constantAttenuation = 1.0; // [0.0, inf]
     float linearAttentuation = 0.0; // [0.0, inf]
@@ -289,7 +287,7 @@ struct gfx_state {
     gfx_light lights[IMPL_MAX_LIGHTS];
     vec4 lightModelAmbient = { 0.2, 0.2, 0.2, 1.0};
     GLboolean lightModelLocalEye = GL_FALSE;
-    GLboolean lightModelTwoSided = GL_FALSE; //TODO
+    GLboolean lightModelTwoSided = GL_FALSE; //TODO implement two-sided lighting
     gfx_material material;
 
     sbuffer<gfx_display_list> displayLists;

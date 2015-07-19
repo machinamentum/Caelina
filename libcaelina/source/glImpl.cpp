@@ -88,7 +88,6 @@ static gfx_display_list *getList(GLuint name) {
 }
 
 static void executeList(gfx_display_list *list) {
-    // printf("List size: %d\n", list->commands.size());
     vec4 color = list->vColor;
     vec4 tex = list->vTex;
     vec4 norm = list->vNormal;
@@ -97,10 +96,8 @@ static void executeList(gfx_display_list *list) {
     if (list->useNormal) glNormal3f(norm.x, norm.y, norm.z);
     for (GLuint i = 0; i < list->commands.size(); ++i) {
         gfx_command &comm = list->commands[i];
-        // printf("CMD type: %d\n", comm.type);
         switch (comm.type) {
             case gfx_command::PUSH_MATRIX:
-                // printf("Call glPushMatrix\n");
                 glPushMatrix();
                 break;
             case gfx_command::POP_MATRIX:
@@ -119,11 +116,9 @@ static void executeList(gfx_display_list *list) {
                 glLoadIdentity();
                 break;
             case gfx_command::BEGIN:
-                // printf("Call glBegin\n");
                 glBegin(comm.enum1);
                 break;
             case gfx_command::END:
-                // printf("Call glEnd\n");
                 g_state->endVBOCMD = comm;
                 glEnd();
                 break;
@@ -185,7 +180,7 @@ void setError(GLenum error) {
 GLenum glGetError (void) {
     CHECK_NULL(g_state, 0);
 
-    //TODO(josh) implement multiple error flags.
+    //TODO implement multiple error flags.
     GLenum error = g_state->errorFlag;
     g_state->errorFlag = GL_NO_ERROR;
     return error;
@@ -317,7 +312,6 @@ void glGetIntegerv (GLenum pname, GLint *params) {
     CHECK_NULL(g_state);
     CHECK_WITHIN_BEGIN_END(g_state);
 
-    //TODO(josh) finish impl.
     switch(pname) {
         case (GL_MAX_MODELVIEW_STACK_DEPTH): {
             params[0] = IMPL_MAX_MODELVIEW_STACK_DEPTH;
@@ -380,7 +374,7 @@ void glClear (GLbitfield mask) {
         g_state->device->clearDepth(1.0);
     }
     if(mask & GL_STENCIL_BUFFER_BIT) {
-        //TODO(josh)
+        //TODO implement stencil operations
     }
 }
 
@@ -417,7 +411,6 @@ void glBegin( GLenum mode ) {
         gfx_command comm;
         comm.type = gfx_command::BEGIN;
         comm.enum1 = mode;
-        // printf("Current display list: %d\n", getList(g_state->currentDisplayList)->name);
         getList(g_state->currentDisplayList)->commands.push_back(comm);
     }
 
@@ -747,7 +740,6 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
         return;
     }
 
-    //TODO(josh) implement
     gfx_texture* text = NULL;
     for(unsigned int i = 0; i < g_state->textures.size(); i++) {
         if(g_state->textures[i].tname == g_state->currentBoundTexture) {
@@ -762,12 +754,10 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
     text->width = width;
     text->height = height;
     text->format = format;
-#warning "glTexImage2D only supports format = GL_RGBA, type = GL_UNSIGNED_BYTE"
-    // if (pixels) memcpy(text->colorBuffer, pixels, sizeof(GLubyte) * 4 * width * height);
 
     if(pixels) {
         unsigned int accum = 0;
-        //TODO
+        //TODO implement unpacking for more texture formats
         for(GLsizei y = 0; y < height; y++) {
             for(GLsizei x = 0; x < width; x++) {
                 switch(format) {
@@ -815,7 +805,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
 void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels ) {
     CHECK_NULL(g_state);
 
-    //TODO unbreak
+    //TODO implement algorithm for updating a tiled image
 
     if(target != GL_TEXTURE_2D) {
         setError(GL_INVALID_ENUM);
@@ -1104,12 +1094,9 @@ void glViewport( GLint x, GLint y, GLsizei width, GLsizei height ) {
         setError(GL_INVALID_VALUE);
         return;
     }
-    // width = width;
-    // height = height * 2;
+
     float h = g_state->device->getHeight();
     float w = g_state->device->getWidth();
-    float vx = (float)(x) / (float)w;
-    float vy = (float)(y) / (float)h;
     float vw = (float)width;
     float vh = (float)height;
     g_state->viewportMatrix = mat4::viewport(((float)x / w), (float)y / h,  vw / (float)w, vh / (float)h);
@@ -1130,7 +1117,6 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
 
     CHECK_WITHIN_BEGIN_END();
 
-#warning "glBlendFunc only supports GL_SRC_ALPHA and GL_ONE_MINUS_SRC_ALPHA"
     switch (sfactor) {
         case (GL_ZERO):
         case (GL_ONE):
@@ -1313,7 +1299,7 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
     }
     
     switch (pname) {
-        case GL_TEXTURE_MIN_FILTER://TODO
+        case GL_TEXTURE_MIN_FILTER:
         case GL_TEXTURE_MAG_FILTER: {
             switch (param) {
                 case GL_LINEAR:
@@ -1331,7 +1317,7 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
         case GL_TEXTURE_WRAP_T: {
             switch (param) {
                 case GL_CLAMP_TO_EDGE:
-                    // case GL_MIRRORED_REPEAT:
+//                case GL_MIRRORED_REPEAT:
                 case GL_REPEAT: {
                 } break;
                     
@@ -1435,7 +1421,7 @@ void glEndList( void ) {
         return;
     }
     
-    //TODO out of memory
+    //TODO check for out of memory and set error
     
     g_state->currentDisplayList = 0;
     g_state->newDisplayListMode = GL_COMPILE_AND_EXECUTE;

@@ -65,29 +65,6 @@ static void GPUCMD_AddSingleParam(u32 header, u32 param) {
 }
 
 static
-void GPU_DrawArrayDirectly(GPU_Primitive_t primitive, u8* data, u32 n)
-{
-    //set attribute buffer address
-    GPUCMD_AddSingleParam(0x000F0200, (osConvertVirtToPhys((u32)data))>>3);
-    //set primitive type
-    GPUCMD_AddSingleParam(0x0002025E, primitive);
-    GPUCMD_AddSingleParam(0x0002025F, 0x00000001);
-    //index buffer not used for drawArrays but 0x000F0227 still required
-    GPUCMD_AddSingleParam(0x000F0227, 0x80000000);
-    //pass number of vertices
-    GPUCMD_AddSingleParam(0x000F0228, n);
-
-    GPUCMD_AddSingleParam(0x00010253, 0x00000001);
-
-    GPUCMD_AddSingleParam(0x00010245, 0x00000000);
-    GPUCMD_AddSingleParam(0x000F022E, 0x00000001);
-    GPUCMD_AddSingleParam(0x00010245, 0x00000001);
-    GPUCMD_AddSingleParam(0x000F0231, 0x00000001);
-
-    // GPUCMD_AddSingleParam(0x000F0111, 0x00000001); //breaks stuff
-}
-
-static
 void SetAttributeBuffers(u8 totalAttributes, u32* baseAddress,
                          u64 attributeFormats, u16 attributeMask,
                          u64 attributePermutation, u8 numBuffers,
@@ -412,15 +389,15 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
             }
 
             GPU_SetTexture(
-                           GPU_TEXUNIT0, //texture unit
-                           (u32*)osConvertVirtToPhys((u32)text->colorBuffer), //data buffer
-                           text->width, //texture width
-                           text->height, //texture height
+                           GPU_TEXUNIT0,
+                           (u32*)osConvertVirtToPhys((u32)text->colorBuffer),
+                           text->width,
+                           text->height,
                            GPU_TEXTURE_MAG_FILTER(gl_tex_filter(text->mag_filter)) |
                            GPU_TEXTURE_MIN_FILTER(gl_tex_filter(text->min_filter)) |
                            GPU_TEXTURE_WRAP_S(gl_tex_wrap(text->wrap_s)) |
-                           GPU_TEXTURE_WRAP_T(gl_tex_wrap(text->wrap_t)), //texture params
-                           GPU_RGBA8 //texture pixel format
+                           GPU_TEXTURE_WRAP_T(gl_tex_wrap(text->wrap_t)),
+                           GPU_RGBA8
                            );
         }
     }
@@ -436,16 +413,16 @@ void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& mod
     GPUCMD_SetBufferOffset(0);
     setup_state(projection, modelview);
     SetAttributeBuffers(
-                        4, // number of attributes
+                        4,
                         (u32*)osConvertVirtToPhys((u32)data),
                         GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
                         GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
-                        0xFF8, //0b1100
+                        0xFF8,
                         0x3210,
-                        1, //number of buffers
-                        {0x0}, // buffer offsets (placeholders)
-                        {0x3210}, // attribute permutations for each buffer
-                        {4} // number of attributes for each buffer
+                        1,
+                        {0x0},
+                        {0x3210},
+                        {4}
                         );
     
     GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), units);
@@ -460,8 +437,7 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     
     setup_state(projection, modelview);
     VBO vbo = VBO(g_state->vertexBuffer.size());
-    
-    //=========================================
+
     if (!g_state->enableTexture2D) {
         vbo.set_data(g_state->vertexBuffer, true);
     } else {
@@ -469,18 +445,17 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     }
     
     SetAttributeBuffers(
-                        4, // number of attributes
+                        4,
                         (u32*)osConvertVirtToPhys((u32)vbo.data),
                         GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
                         GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
-                        0xFF8, //0b1100
+                        0xFF8,
                         0x3210,
-                        1, //number of buffers
-                        {0x0}, // buffer offsets (placeholders)
-                        {0x3210}, // attribute permutations for each buffer
-                        {4} // number of attributes for each buffer
+                        1,
+                        {0x0},
+                        {0x3210},
+                        {4}
                         );
-    // set_attr((u32*)osConvertVirtToPhys((u32)vbo.data));
     linearFree(vbo.data);
     GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), vbo.numVertices);
     GPU_FinishDrawing();
