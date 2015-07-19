@@ -13,20 +13,20 @@
 .alias v_normal    v3
 
 main:
-	// temp.pos = mdlView * in.pos
-	dp4 r0.x, modelview[0], vertex
-	dp4 r0.y, modelview[1], vertex
-	dp4 r0.z, modelview[2], vertex
-	dp4 r0.w, modelview[3], vertex
-	// result.pos = prjMtx * temp.pos
-	dp4 outpos.x, projection[0], r0
-	dp4 outpos.y, projection[1], r0
-	dp4 outpos.z, projection[2], r0
-	dp4 outpos.w, projection[3], r0
-	// result.texcoord = in.texcoord
-	mov outtex0, v_texcoord
-	// result.color = in.color
-	mov outcol, v_color
-	nop
-	end
+    // temp.pos = mdlView * in.pos
+    dp4 r0.x, modelview[0], vertex
+    dp4 r0.y, modelview[1], vertex
+    dp4 r0.z, modelview[2], vertex
+    dp4 r0.w, modelview[3], vertex
+    // result.pos = prjMtx * temp.pos
+    dp4 outpos.x, projection[0], r0
+    dp4 outpos.y, projection[1], r0
+    dp4 outpos.z, projection[2], r0
+    dp4 outpos.w, projection[3], r0
+    // result.texcoord = in.texcoord
+    mov outtex0, v_texcoord
+    // result.color = in.color
+    mov outcol, v_color
+    nop
+    end
 endmain:

@@ -11,24 +11,24 @@
 #include "gfx_device_internal.h"
 
 #define CHECK_NULL(x, ...) \
-	if(!x) return __VA_ARGS__;
+    if(!x) return __VA_ARGS__;
 
 #define CHECK_WITHIN_BEGIN_END(x, ...) \
-	if(g_state->withinBeginEndBlock) { \
-		setError(GL_INVALID_OPERATION); \
-		return __VA_ARGS__; \
-	}
+    if(g_state->withinBeginEndBlock) { \
+        setError(GL_INVALID_OPERATION); \
+        return __VA_ARGS__; \
+    }
 
 #define CHECK_WITHIN_NEW_END(x, ...) \
-	if(g_state->withinNewEndListBlock) { \
-		setError(GL_INVALID_OPERATION); \
-		return __VA_ARGS__; \
-	}
+    if(g_state->withinNewEndListBlock) { \
+        setError(GL_INVALID_OPERATION); \
+        return __VA_ARGS__; \
+    }
 
 #define CHECK_COMPILE_AND_EXECUTE(x, ...) \
-	if(g_state->newDisplayListMode == GL_COMPILE) { \
-		return __VA_ARGS__; \
-	}
+    if(g_state->newDisplayListMode == GL_COMPILE) { \
+        return __VA_ARGS__; \
+    }
 
 struct gfx_state;
 extern gfx_state *g_state;
@@ -37,7 +37,7 @@ extern gfx_state *g_state;
 extern "C" {
 #endif
 
-void setError(GLenum error);
+    void setError(GLenum error);
 
 #ifdef __cplusplus
 }
