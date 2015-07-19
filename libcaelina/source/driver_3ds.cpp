@@ -10,50 +10,6 @@
     GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
     GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_X))
 
-struct _3ds_vec3 {
-    float x, y, z;
-};
-
-struct _3ds_vertex {
-    _3ds_vec3 pos;
-    vec4 texCoord;
-    vec4 color;
-    vec4 normal;
-};
-
-struct VBO {
-    u8* data;
-    u32 currentSize; // in bytes
-    u32 maxSize; // in bytes
-    u32 numVertices;
-
-    VBO(u32 size) {
-        data = (u8 *)linearAlloc(size * sizeof(_3ds_vertex));
-        currentSize = 0;
-        maxSize = size;
-        numVertices = 0;
-    }
-
-    ~VBO() {
-
-    }
-
-    int set_data(sbuffer<vertex>& vdat) {
-        _3ds_vertex *ver = (_3ds_vertex *)data;
-        for (int i = 0; i < vdat.size(); ++i) {
-            ver[i].color = vec4(vdat[i].color);
-            ver[i].texCoord = vec4(vdat[i].textureCoord);
-            ver[i].pos.x = vdat[i].position.x;
-            ver[i].pos.y = vdat[i].position.y;
-            ver[i].pos.z = vdat[i].position.z;
-            ver[i].normal = vec4(vdat[i].normal);
-        }
-        currentSize += vdat.size() * sizeof(_3ds_vertex);
-        numVertices += vdat.size();
-        return 0;
-    }
-
-};
 
 #undef GPUCMD_AddSingleParam
 static void GPUCMD_AddSingleParam(u32 header, u32 param) {
@@ -432,13 +388,12 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     GPUCMD_SetBufferOffset(0);
     
     setup_state(projection, modelview);
-    VBO vbo = VBO(g_state->vertexBuffer.size());
 
-    vbo.set_data(g_state->vertexBuffer);
+    temp_vbo.set_data(g_state->vertexBuffer);
 
     SetAttributeBuffers(
                         4,
-                        (u32*)osConvertVirtToPhys((u32)vbo.data),
+                        (u32*)osConvertVirtToPhys((u32)temp_vbo.data),
                         GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
                         GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
                         0xFF8,
@@ -448,8 +403,7 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
                         {0x3210},
                         {4}
                         );
-    linearFree(vbo.data);
-    GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), vbo.numVertices);
+    GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), temp_vbo.numVertices);
     GPU_FinishDrawing();
     GPUCMD_Finalize();
     GPUCMD_FlushAndRun(NULL);

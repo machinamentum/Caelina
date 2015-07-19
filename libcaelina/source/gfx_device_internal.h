@@ -27,8 +27,8 @@ class sbuffer {
     unsigned int reserve_block_size;
 public:
 
-    sbuffer(unsigned int reserve = 128) {
-        if(reserve == 0) reserve = 128;
+    sbuffer(unsigned int reserve = 2048) {
+        if(reserve == 0) reserve = 2048;
         buffer = (T *)linearAlloc(reserve * sizeof(T));
         buffer_size = reserve;
         current_index = 0;

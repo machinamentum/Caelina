@@ -7,6 +7,54 @@
 #include <3ds.h>
 #include <GL/glext.h>
 
+struct _3ds_vec3 {
+    float x, y, z;
+};
+
+struct _3ds_vertex {
+    _3ds_vec3 pos;
+    vec4 texCoord;
+    vec4 color;
+    vec4 normal;
+};
+
+
+struct VBO {
+    u8* data;
+    u32 currentSize; // in bytes
+    u32 maxSize; // in bytes
+    u32 numVertices;
+
+    VBO(u32 size) {
+        data = (u8 *)linearAlloc(size * sizeof(_3ds_vertex));
+        currentSize = 0;
+        maxSize = size * sizeof(_3ds_vertex);
+        numVertices = 0;
+    }
+
+    ~VBO() {
+
+    }
+
+    int set_data(sbuffer<vertex>& vdat) {
+        currentSize = vdat.size() * sizeof(_3ds_vertex);
+        numVertices = vdat.size();
+        if (currentSize > maxSize) return -1;
+        _3ds_vertex *ver = (_3ds_vertex *)data;
+        for (int i = 0; i < vdat.size(); ++i) {
+            ver[i].color = vec4(vdat[i].color);
+            ver[i].texCoord = vec4(vdat[i].textureCoord);
+            ver[i].pos.x = vdat[i].position.x;
+            ver[i].pos.y = vdat[i].position.y;
+            ver[i].pos.z = vdat[i].position.z;
+            ver[i].normal = vec4(vdat[i].normal);
+        }
+
+        return 0;
+    }
+
+};
+
 /* PICA200 extension state */
 struct gfx_device_3ds_ext {
 
@@ -21,6 +69,7 @@ class gfx_device_3ds : public gfx_device {
     shaderProgram_s shader;
     shaderProgram_s vertex_lighting_shader;
     DVLB_s* dvlb;
+    VBO temp_vbo = VBO(0x1F400); // approx ~128,000 vertices
 
     void setup_state(const mat4& projection, const mat4& modelview);
 
