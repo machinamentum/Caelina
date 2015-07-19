@@ -6,6 +6,7 @@
 #define IMPL_MAX_TEXTURE_STACK_DEPTH       2
 #define IMPL_MAX_TEXTURE_SIZE           1024
 #define IMPL_MAX_LIST_CALL_DEPTH          64
+#define IMPL_MAX_LIGHTS                    8
 
 #include "gfx_device_internal.h"
 

@@ -89,6 +89,12 @@ static gfx_display_list *getList(GLuint name) {
 
 static void executeList(gfx_display_list *list) {
 	// printf("List size: %d\n", list->commands.size());
+	vec4 color = list->vColor;
+	vec4 tex = list->vTex;
+	vec4 norm = list->vNormal;
+	if (list->useColor) glColor4f(color.x, color.y, color.z, color.w);
+	if (list->useTex) glTexCoord4f(tex.x, tex.y, tex.z, tex.w);
+	if (list->useNormal) glNormal3f(norm.x, norm.y, norm.z);
 	for (GLuint i = 0; i < list->commands.size(); ++i) {
 		gfx_command &comm = list->commands[i];
 		// printf("CMD type: %d\n", comm.type);
@@ -467,13 +473,13 @@ void glEnd( void ) {
 
 	g_state->withinBeginEndBlock = GL_FALSE;
 
-	mat4 mvp = g_state->projectionMatrixStack[g_state->currentProjectionMatrix]
-			* g_state->modelviewMatrixStack[g_state->currentModelviewMatrix];
+	mat4 projectionMatrix = g_state->projectionMatrixStack[g_state->currentProjectionMatrix];
+	mat4 modelvieMatrix = g_state->modelviewMatrixStack[g_state->currentModelviewMatrix];
 
 	if (g_state->displayListCallDepth == 0) {
-		g_state->device->render_vertices(mvp);
+		g_state->device->render_vertices(projectionMatrix, modelvieMatrix);
 	} else {
-		g_state->device->render_vertices_vbo(mvp, g_state->endVBOCMD.vdata, g_state->endVBOCMD.vdata_units);
+		g_state->device->render_vertices_vbo(projectionMatrix, modelvieMatrix, g_state->endVBOCMD.vdata, g_state->endVBOCMD.vdata_units);
 	}
 	g_state->vertexBuffer.clear();
 }
@@ -493,6 +499,11 @@ void glTexCoord3f( GLfloat s, GLfloat t, GLfloat r ) {
 void glTexCoord4f( GLfloat s, GLfloat t, GLfloat r, GLfloat q ) {
 	CHECK_NULL(g_state);
 
+	if (g_state->withinNewEndListBlock) {
+		getList(g_state->currentDisplayList)->useTex = GL_TRUE;
+		getList(g_state->currentDisplayList)->vTex = vec4(s, t, r, q);
+	}
+
 	g_state->currentTextureCoord = vec4(s, t, r, q);
 }
 
@@ -502,6 +513,11 @@ void glColor3f( GLfloat red, GLfloat green, GLfloat blue ) {
 
 void glColor4f( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha ) {
 	CHECK_NULL(g_state);
+
+	if (g_state->withinNewEndListBlock) {
+		getList(g_state->currentDisplayList)->useColor = GL_TRUE;
+		getList(g_state->currentDisplayList)->vColor = vec4(red, green, blue, alpha);
+	}
 
 	g_state->currentVertexColor = vec4(red, green, blue, alpha);
 }
@@ -534,7 +550,12 @@ void glVertex4f( GLfloat x, GLfloat y, GLfloat z, GLfloat w ) {
 void glNormal3f( GLfloat nx, GLfloat ny, GLfloat nz ) {
 	CHECK_NULL(g_state);
 
-	g_state->currentVertexNormal = vec4(nx, ny, nz);
+	if (g_state->withinNewEndListBlock) {
+		getList(g_state->currentDisplayList)->useNormal = GL_TRUE;
+		getList(g_state->currentDisplayList)->vNormal = vec4(nx, ny, nz);
+	}
+
+	g_state->currentVertexNormal = vec4(nx, ny, nz, 1.0);
 }
 
 GLboolean glIsTexture( GLuint texture ) {
@@ -740,6 +761,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
 	text->colorBuffer = (GLubyte*)gfx_platform_texture_malloc(sizeof(GLubyte) * 4 * width * height);
 	text->width = width;
 	text->height = height;
+	text->format = format;
 	#warning "glTexImage2D only supports format = GL_RGBA, type = GL_UNSIGNED_BYTE"
 	// if (pixels) memcpy(text->colorBuffer, pixels, sizeof(GLubyte) * 4 * width * height);
 
@@ -765,9 +787,9 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
 						if(type == GL_UNSIGNED_BYTE) {
 							int index = (x + y * width) * 4;
 							GLubyte* bpixels = (GLubyte*)pixels;
-							text->colorBuffer[index] = 0xFF;
-							text->colorBuffer[index + 1] = 0xFF;
-							text->colorBuffer[index + 2] = 0xFF;
+							text->colorBuffer[index] = 0x00;
+							text->colorBuffer[index + 1] = 0x00;
+							text->colorBuffer[index + 2] = 0x00;
 							text->colorBuffer[index + 3] = bpixels[accum];
 							accum++;
 						}
@@ -1187,7 +1209,22 @@ void glEnable( GLenum cap ) {
 
 		case (GL_SCISSOR_TEST): {
 			g_state->enableScissorTest = GL_TRUE;
-		}
+		} break;
+
+		case (GL_LIGHTING): {
+			g_state->enableLighting = GL_TRUE;
+		} break;
+
+		case (GL_LIGHT0):
+		case (GL_LIGHT1):
+		case (GL_LIGHT2):
+		case (GL_LIGHT3):
+		case (GL_LIGHT4):
+		case (GL_LIGHT5):
+		case (GL_LIGHT6):
+		case (GL_LIGHT7): {
+			g_state->enableLight[GL_LIGHT0 - cap] = GL_TRUE;
+		} break;
 
 		default: {
 			setError(GL_INVALID_ENUM);
@@ -1225,7 +1262,22 @@ void glDisable( GLenum cap ) {
 
 		case (GL_SCISSOR_TEST): {
 			g_state->enableScissorTest = GL_FALSE;
-		}
+		} break;
+
+		case (GL_LIGHTING): {
+			g_state->enableLighting = GL_FALSE;
+		} break;
+
+		case (GL_LIGHT0):
+		case (GL_LIGHT1):
+		case (GL_LIGHT2):
+		case (GL_LIGHT3):
+		case (GL_LIGHT4):
+		case (GL_LIGHT5):
+		case (GL_LIGHT6):
+		case (GL_LIGHT7): {
+			g_state->enableLight[GL_LIGHT0 - cap] = GL_FALSE;
+		} break;
 
 		default: {
 			setError(GL_INVALID_ENUM);
@@ -1364,6 +1416,7 @@ void glNewList( GLuint list, GLenum mode ) {
 			g_state->currentDisplayList = list;
 			g_state->newDisplayListMode = mode;
 			g_state->withinNewEndListBlock = GL_TRUE;
+			getList(list)->commands.clear();
 		} break;
 
 		default: {
@@ -1392,15 +1445,17 @@ void glEndList( void ) {
 void glCallList( GLuint list ) {
 	CHECK_NULL(g_state);
 
-	// if (list == 0) return;
+	if (list == 0) return;
 
 	if (g_state->displayListCallDepth > IMPL_MAX_LIST_CALL_DEPTH) return;
 
 	gfx_display_list *clist = getList(list);
-	// if (clist) {
+	if (clist) {
 		++g_state->displayListCallDepth;
 		executeList(clist);
 		--g_state->displayListCallDepth;
-	// }
+	}
 }
+
+
 }

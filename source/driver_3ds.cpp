@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include "default_3ds_vsh_shbin.h"
+#include "vertex_lighting_3ds_vsh_shbin.h"
 
 #define DISPLAY_TRANSFER_FLAGS \
 	(GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
@@ -15,7 +16,9 @@ struct _3ds_vec3 {
 
 struct _3ds_vertex {
 	_3ds_vec3 pos;
+	vec4 texCoord;
 	vec4 color;
+	vec4 normal;
 };
 
 struct VBO {
@@ -42,14 +45,12 @@ struct VBO {
    int set_data(sbuffer<vertex>& vdat, bool color) {
 		_3ds_vertex *ver = (_3ds_vertex *)data;
 		for (int i = 0; i < vdat.size(); ++i) {
-			if (color) {
-				ver[i].color = vec4(vdat[i].color);
-			} else {
-				ver[i].color = vec4(vdat[i].textureCoord);
-			}
+			ver[i].color = vec4(vdat[i].color);
+			ver[i].texCoord = vec4(vdat[i].textureCoord);
 			ver[i].pos.x = vdat[i].position.x;
 			ver[i].pos.y = vdat[i].position.y;
 			ver[i].pos.z = vdat[i].position.z;
+			ver[i].normal = vec4(vdat[i].normal);
 		}
       currentSize += vdat.size() * sizeof(_3ds_vertex);
       numVertices += vdat.size();
@@ -116,9 +117,14 @@ gfx_device_3ds::gfx_device_3ds(gfx_state *state, int w, int h) : gfx_device(stat
    GPU_Reset(NULL, gpuCmd, gpuCmdSize);
 
    dvlb=DVLB_ParseFile((u32*)default_3ds_vsh_shbin, default_3ds_vsh_shbin_size);
-	shaderProgramInit(&shader);
-	shaderProgramSetVsh(&shader, &dvlb->DVLE[0]);
+   shaderProgramInit(&shader);
+   shaderProgramSetVsh(&shader, &dvlb->DVLE[0]);
    shaderProgramUse(&shader);
+
+   dvlb=DVLB_ParseFile((u32*)vertex_lighting_3ds_vsh_shbin, vertex_lighting_3ds_vsh_shbin_size);
+   shaderProgramInit(&vertex_lighting_shader);
+   shaderProgramSetVsh(&vertex_lighting_shader, &dvlb->DVLE[0]);
+   shaderProgramUse(&vertex_lighting_shader);
 
    GPUCMD_Finalize();
 	GPUCMD_FlushAndRun(NULL);
@@ -242,23 +248,97 @@ u8 *gfx_device_3ds::cache_vertex_list(GLuint *size) {
 	return vbo.data;
 }
 
-void gfx_device_3ds::setup_state(const mat4& mvp) {
-	shaderProgramUse(&shader);
+void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) {
 
-	float mu[4*4];
+	if (!g_state->enableLighting) {
+		shaderProgramUse(&shader);
+	} else {
+		shaderProgramUse(&vertex_lighting_shader);
+	}
+
+	float mu_proj[4*4];
+	float mu_model[4*4];
 	mat4 pica = mat4();
 	pica[0xA] = 0.5;
 	pica[0xB] = -0.5;
 
-	pica = pica * g_state->viewportMatrix * mvp;
+	pica = pica * g_state->viewportMatrix * projection;
 	int i, j;
 	for (i = 0; i < 4; i++) {
 		for (j = 0; j < 4; j++) {
-			mu[i*4 + j] = pica[i*4 + (3-j)];
+			mu_proj[i*4 + j] = pica[i*4 + (3-j)];
+		}
+	}
+	for (i = 0; i < 4; i++) {
+		for (j = 0; j < 4; j++) {
+			mu_model[i*4 + j] = modelview[i*4 + (3-j)];
 		}
 	}
 
-	GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(shader.vertexShader, "projection"), (u32*)mu, 4);
+	if (g_state->enableLighting) {
+		float mu_normal[4*4];
+		mat4 normal_mtx = mat4(modelview);
+		normal_mtx[0 + 3] = 0.0;
+		normal_mtx[4 + 3] = 0.0;
+		normal_mtx[8 + 3] = 0.0;
+		// normal_mtx = normal_mtx.inverse().transpose();
+		for (i = 0; i < 4; i++) {
+			for (j = 0; j < 4; j++) {
+				mu_normal[i*4 + j] = normal_mtx[i*4 + (3-j)];
+			}
+		}
+		shaderInstanceSetBool(vertex_lighting_shader.vertexShader, 0, g_state->enableLight[0]);
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "projection"), (u32*)mu_proj, 4);
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "modelview"), (u32*)mu_model, 4);
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "normal_mtx"), (u32*)mu_normal, 4);
+
+		gfx_light *light = &g_state->lights[0];
+		vec4 vtemp = light->ambient;
+		vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_ambient"), (u32*)&vtemp[0], 1);
+		vtemp = light->diffuse;
+		vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_diffuse"), (u32*)&vtemp[0], 1);
+		vtemp = light->specular;
+		vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_specular"), (u32*)&vtemp[0], 1);
+		vtemp = modelview * light->position;
+		vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_position"), (u32*)&vtemp[0], 1);
+		vtemp = light->spotlightDirection;
+		vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_spotdir"), (u32*)&vtemp[0], 1);
+		vtemp = {0.0f, light->spotlightExpo, cosf(light->spotlightCutoff), light->spotlightCutoff};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_spot_cutoff"), (u32*)&vtemp[0], 1);
+		vtemp = {0.0f, light->quadraticAttenuation, cosf(light->linearAttentuation), light->constantAttenuation};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_attenuation"), (u32*)&vtemp[0], 1);
+
+		//material
+		gfx_material *mat = &g_state->material;
+		vtemp = mat->ambientColor;
+		vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "material_ambient"), (u32*)&vtemp[0], 1);
+		vtemp = mat->diffuseColor;
+		vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "material_diffuse"), (u32*)&vtemp[0], 1);
+		vtemp = mat->specularColor;
+		vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "material_specular"), (u32*)&vtemp[0], 1);
+		vtemp = mat->emissiveColor;
+		vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "material_emissive"), (u32*)&vtemp[0], 1);
+		vtemp = {0.0f, 0.0f, 0.0f, mat->specularExpo};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "material_shininess"), (u32*)&vtemp[0], 1);
+
+		vtemp = g_state->lightModelAmbient;
+		vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light_model_ambient"), (u32*)&vtemp[0], 1);
+
+	} else {
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(shader.vertexShader, "projection"), (u32*)mu_proj, 4);
+		GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(shader.vertexShader, "modelview"), (u32*)mu_model, 4);
+	}
+
 
 	GPU_SetViewport((u32 *)osConvertVirtToPhys((u32)gpuDOut),
 		(u32 *)osConvertVirtToPhys((u32)gpuOut),
@@ -301,13 +381,6 @@ void gfx_device_3ds::setup_state(const mat4& mvp) {
 		);
 	} else {
 		GPU_SetTextureEnable(GPU_TEXUNIT0);
-		GPU_SetTexEnv(0,
-		GPU_TEVSOURCES(GPU_TEXTURE0, GPU_TEXTURE0, GPU_TEXTURE0),
-		GPU_TEVSOURCES(GPU_TEXTURE0, GPU_TEXTURE0, GPU_TEXTURE0),
-		GPU_TEVOPERANDS(0,0,0),
-		GPU_TEVOPERANDS(0,0,0),
-		GPU_MODULATE, GPU_MODULATE,
-		0xFFFFFFFF);
 
 		gfx_texture* text = NULL;
 		for(unsigned int i = 0; i < g_state->textures.size(); i++) {
@@ -317,6 +390,24 @@ void gfx_device_3ds::setup_state(const mat4& mvp) {
 			}
 		}
 		if (text) {
+
+			if (text->format == GL_ALPHA) {
+				GPU_SetTexEnv(0,
+				GPU_TEVSOURCES(GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR),
+				GPU_TEVSOURCES(GPU_TEXTURE0, GPU_TEXTURE0, GPU_TEXTURE0),
+				GPU_TEVOPERANDS(0,0,0),
+				GPU_TEVOPERANDS(0,0,0),
+				GPU_REPLACE, GPU_MODULATE,
+				0xFFFFFFFF);
+			} else {
+				GPU_SetTexEnv(0,
+				GPU_TEVSOURCES(GPU_TEXTURE0, GPU_TEXTURE0, GPU_TEXTURE0),
+				GPU_TEVSOURCES(GPU_TEXTURE0, GPU_TEXTURE0, GPU_TEXTURE0),
+				GPU_TEVOPERANDS(0,0,0),
+				GPU_TEVOPERANDS(2,2,2),
+				GPU_MODULATE, GPU_MODULATE,
+				0xFFFFFFFF);
+			}
 
 			GPU_SetTexture(
 				GPU_TEXUNIT0, //texture unit
@@ -339,19 +430,20 @@ void gfx_device_3ds::setup_state(const mat4& mvp) {
 	GPU_SetDummyTexEnv(5);
 }
 
-void gfx_device_3ds::render_vertices_vbo(const mat4& mvp, u8 *data, GLuint units) {
+void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units) {
 	GPUCMD_SetBufferOffset(0);
-	setup_state(mvp);
+	setup_state(projection, modelview);
 	SetAttributeBuffers(
-		2, // number of attributes
+		4, // number of attributes
 		(u32*)osConvertVirtToPhys((u32)data),
-		GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT),
-		0xFFFC, //0b1100
-		0x10,
+		GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
+		GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
+		0xFF8, //0b1100
+		0x3210,
 		1, //number of buffers
 		{0x0}, // buffer offsets (placeholders)
-		{0x10}, // attribute permutations for each buffer
-		{2} // number of attributes for each buffer
+		{0x3210}, // attribute permutations for each buffer
+		{4} // number of attributes for each buffer
 	);
 
    GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), units);
@@ -361,10 +453,10 @@ void gfx_device_3ds::render_vertices_vbo(const mat4& mvp, u8 *data, GLuint units
 	gspWaitForP3D();
 }
 
-void gfx_device_3ds::render_vertices(const mat4& mvp) {
+void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelview) {
 	GPUCMD_SetBufferOffset(0);
 
-	setup_state(mvp);
+	setup_state(projection, modelview);
 	VBO vbo = VBO(g_state->vertexBuffer.size());
 
 	//=========================================
@@ -375,15 +467,16 @@ void gfx_device_3ds::render_vertices(const mat4& mvp) {
 	}
 
 	SetAttributeBuffers(
-		2, // number of attributes
+		4, // number of attributes
 		(u32*)osConvertVirtToPhys((u32)vbo.data),
-		GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT),
-		0xFFFC, //0b1100
-		0x10,
+		GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
+		GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
+		0xFF8, //0b1100
+		0x3210,
 		1, //number of buffers
 		{0x0}, // buffer offsets (placeholders)
-		{0x10}, // attribute permutations for each buffer
-		{2} // number of attributes for each buffer
+		{0x3210}, // attribute permutations for each buffer
+		{4} // number of attributes for each buffer
 	);
 		// set_attr((u32*)osConvertVirtToPhys((u32)vbo.data));
 	linearFree(vbo.data);

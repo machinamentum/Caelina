@@ -1,39 +1,32 @@
-; setup constants
-	.const c20, 0.0, 0.0, 0.0, 1.0
+.alias plz_no_crash c95 as (0.0, 4.0, 1.0, 8.0)
 
-; setup outmap
-	.out o0, result.position, 0xF
-	.out o1, result.texcoord0, 0x3
-	.out o2, result.color, 0xF
+.alias outpos  o0      as position
+.alias outcol  o1      as color
+.alias outtex0 o2.xyzw as texcoord0
 
-; setup uniform map (not required)
-	.uniform c0, c3, projection
+.alias projection c0
+.alias modelview  c4
 
-	.vsh vmain, end_vmain
+.alias vertex      v0
+.alias v_texcoord  v1
+.alias v_color     v2
+.alias v_normal    v3
 
-;code
-	vmain:
-		; result.pos = projMtx * in.pos
-		dp4 o0, c0, v0 (0x0)
-		dp4 o0, c1, v0 (0x1)
-		dp4 o0, c2, v0 (0x2)
-		dp4 o0, c3, v0 (0x3)
-		; result.texcoord = in.texcoord
-		mov o1, v1 (0x5)
-		; result.color = in.color
-		mov o2, v1 (0x5)
-		nop
-		end
-	end_vmain:
-
-;operand descriptors
-	.opdesc x___, xyzw, xyzw ; 0x0
-	.opdesc _y__, xyzw, xyzw ; 0x1
-	.opdesc __z_, xyzw, xyzw ; 0x2
-	.opdesc ___w, xyzw, xyzw ; 0x3
-	.opdesc xyz_, xyzw, xyzw ; 0x4
-	.opdesc xyzw, xyzw, xyzw ; 0x5
-	.opdesc x_zw, xyzw, xyzw ; 0x6
-	.opdesc xyzw, yyyw, xyzw ; 0x7
-	.opdesc xyz_, wwww, wwww ; 0x8
-	.opdesc xyz_, yyyy, xyzw ; 0x9
+main:
+	// temp.pos = mdlView * in.pos
+	dp4 r0.x, modelview[0], vertex
+	dp4 r0.y, modelview[1], vertex
+	dp4 r0.z, modelview[2], vertex
+	dp4 r0.w, modelview[3], vertex
+	// result.pos = prjMtx * temp.pos
+	dp4 outpos.x, projection[0], r0
+	dp4 outpos.y, projection[1], r0
+	dp4 outpos.z, projection[2], r0
+	dp4 outpos.w, projection[3], r0
+	// result.texcoord = in.texcoord
+	mov outtex0, v_texcoord
+	// result.color = in.color
+	mov outcol, v_color
+	nop
+	end
+endmain:

@@ -111,7 +111,7 @@ $(OUTPUT)	:	$(OFILES)
 %.vsh.o	:	%.vsh
 #---------------------------------------------------------------------------------
 	@echo $(notdir $<)
-	@python $(AEMSTRO)/aemstro_as.py $< ../$(notdir $<).shbin
+	$(NIHSTRO)/nihstro-assemble --input $< --output ../$(notdir $<).shbin
 	@bin2s ../$(notdir $<).shbin | $(PREFIX)as -o $@
 	@echo "extern const u8" `(echo $(notdir $<).shbin | sed -e 's/^\([0-9]\)/_\1/' | tr . _)`"_end[];" > `(echo $(notdir $<).shbin | tr . _)`.h
 	@echo "extern const u8" `(echo $(notdir $<).shbin | sed -e 's/^\([0-9]\)/_\1/' | tr . _)`"[];" >> `(echo $(notdir $<).shbin | tr . _)`.h

@@ -112,6 +112,7 @@ struct gfx_texture {
 	GLubyte* colorBuffer;
 	GLsizei width;
 	GLsizei height;
+	GLenum format;
 	GLenum min_filter = GL_NEAREST_MIPMAP_LINEAR;//TODO
 	GLenum mag_filter = GL_LINEAR;
 	GLenum wrap_s = GL_REPEAT;
@@ -209,11 +210,40 @@ struct gfx_command {
 
 struct gfx_display_list {
 	GLuint name;
+	GLboolean useColor = GL_FALSE;
+	GLboolean useTex = GL_FALSE;
+	GLboolean useNormal = GL_FALSE;
+	vec4 vColor;
+	vec4 vTex;
+	vec4 vNormal;
 	std::vector<gfx_command> commands;
 };
 
+struct gfx_light {
+	vec4 ambient = { 0.0, 0.0, 0.0, 1.0 };
+	vec4 diffuse = { 0.0, 0.0, 0.0, 1.0 }; // set in gfx_device()
+	vec4 specular = { 0.0, 0.0, 0.0, 1.0 }; // set int gfx_device();
+	vec4 position = { 0.0, 0.0, 1.0, 0.0 };
+	vec4 spotlightDirection = { 0.0, 0.0, -1.0, 0.0 };
+	float spotlightExpo = 0.0; //[0.0, 128.0]
+	float spotlightCutoff = 180.0; // [0.0, 90.0], 180.0
+	float constantAttenuation = 1.0; // [0.0, inf]
+	float linearAttentuation = 0.0; // [0.0, inf]
+	float quadraticAttenuation = 0.0; // [0.0, inf]
+};
+
+struct gfx_material {
+	vec4 ambientColor = { 0.2, 0.2, 0.2, 1.0 };
+	vec4 diffuseColor = { 0.8, 0.8, 0.8, 1.0 };
+	vec4 specularColor = { 0.0, 0.0, 0.0, 1.0 };
+	vec4 emissiveColor = { 0.0, 0.0, 0.0, 1.0 };
+	float specularExpo = 0.0; // [0.0, 128.0]
+	float ambientColorIndex = 0.0;
+	float diffuseColorIndex = 1.0;
+	float specularColorIndex = 1.0;
+};
+
 struct gfx_state {
-	//TODO(josh) make gfx_device an interface to allow hardware devices
 	gfx_device* device;
 
 	vec4 clearColor;
@@ -221,6 +251,7 @@ struct gfx_state {
 	mat4 modelviewMatrixStack[IMPL_MAX_MODELVIEW_STACK_DEPTH];
 	mat4 projectionMatrixStack[IMPL_MAX_PROJECTION_STACK_DEPTH];
 	mat4 textureMatrixStack[IMPL_MAX_TEXTURE_STACK_DEPTH];
+	mat4 viewportMatrix;
 
 	s8 currentModelviewMatrix = 0;
 	s8 currentProjectionMatrix = 0;
@@ -250,10 +281,16 @@ struct gfx_state {
 	GLboolean enableDepthTest = GL_FALSE;
 	GLboolean enableBlend = GL_FALSE;
 	GLboolean enableScissorTest = GL_FALSE;
+	GLboolean enableLighting = GL_FALSE;
+	GLboolean enableLight[IMPL_MAX_LIGHTS];
 
 	gfx_vec4i scissorBox;
 
-	mat4 viewportMatrix;
+	gfx_light lights[IMPL_MAX_LIGHTS];
+	vec4 lightModelAmbient = { 0.2, 0.2, 0.2, 1.0};
+	GLboolean lightModelLocalEye = GL_FALSE;
+	GLboolean lightModelTwoSided = GL_FALSE; //TODO
+	gfx_material material;
 
 	sbuffer<gfx_display_list> displayLists;
 	GLuint nextDisplayListName = 1;
@@ -277,14 +314,20 @@ public:
 		g_state->scissorBox = {0, 0, w, h};
 		width = w;
 		height = h;
+		g_state->lights[0].diffuse = { 1.0, 1.0, 1.0, 1.0 };
+		g_state->lights[0].specular = { 1.0, 1.0, 1.0, 1.0 };
+
+		for (int i = 0; i < IMPL_MAX_LIGHTS; ++i) {
+			g_state->enableLight[i] = GL_FALSE;
+		}
 	}
 
 	virtual ~gfx_device() {};
 	virtual void clear(u8 r, u8 g, u8 b, u8 a) = 0;
 	virtual void clearDepth(GLdouble depth) = 0;
 	virtual void flush(u8 *fb) = 0;
-	virtual void render_vertices(const mat4& mvp) = 0;
-	virtual void render_vertices_vbo(const mat4& mvp, u8 *data, GLuint units) = 0;
+	virtual void render_vertices(const mat4& projection, const mat4& modelview) = 0;
+	virtual void render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units) = 0;
 	virtual void repack_texture(gfx_texture &tex) {}
 	virtual u8 *cache_vertex_list(GLuint *size) = 0;
 

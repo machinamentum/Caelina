@@ -19,9 +19,10 @@ class gfx_device_3ds : public gfx_device {
    u32 *gpuDOut;
    u32 *gpuOut;
    shaderProgram_s shader;
+   shaderProgram_s vertex_lighting_shader;
    DVLB_s* dvlb;
 
-   void setup_state(const mat4& mvp);
+   void setup_state(const mat4& projection, const mat4& modelview);
 
 public:
    gfx_device_3ds_ext ext_state;
@@ -31,8 +32,8 @@ public:
    virtual void clear(u8 r, u8 g, u8 b, u8 a);
    virtual void clearDepth(GLdouble depth);
    virtual void flush(u8* fb);
-   virtual void render_vertices(const mat4& mvp);
-   virtual void render_vertices_vbo(const mat4& mvp, u8 *data, GLuint units);
+   virtual void render_vertices(const mat4& projection, const mat4& modelview);
+   virtual void render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units);
 	virtual void repack_texture(gfx_texture& tex);
    virtual u8 *cache_vertex_list(GLuint *size);
 
