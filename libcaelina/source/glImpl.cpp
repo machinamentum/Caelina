@@ -189,7 +189,7 @@ GLenum glGetError (void) {
 void glPopMatrix (void) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::POP_MATRIX;
         getList(g_state->currentDisplayList)->commands.push_back(comm);
@@ -233,7 +233,7 @@ void glPopMatrix (void) {
 void glPushMatrix (void) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::PUSH_MATRIX;
         getList(g_state->currentDisplayList)->commands.push_back(comm);
@@ -282,7 +282,7 @@ void glPushMatrix (void) {
 void glMatrixMode (GLenum mode) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::MATRIX_MODE;
         comm.enum1 = mode;
@@ -328,7 +328,7 @@ void glGetIntegerv (GLenum pname, GLint *params) {
 void glClearColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::CLEAR_COLOR;
         comm.clamp1 = red;
@@ -349,7 +349,7 @@ void glClearColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) 
 void glClear (GLbitfield mask) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::CLEAR;
         comm.mask1 = mask;
@@ -381,7 +381,7 @@ void glClear (GLbitfield mask) {
 void glLoadIdentity (void) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::LOAD_IDENTITY;
         getList(g_state->currentDisplayList)->commands.push_back(comm);
@@ -407,7 +407,7 @@ void glLoadIdentity (void) {
 void glBegin( GLenum mode ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::BEGIN;
         comm.enum1 = mode;
@@ -444,7 +444,7 @@ void glBegin( GLenum mode ) {
 void glEnd( void ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::END;
         comm.vdata_units = g_state->vertexBuffer.size();
@@ -492,7 +492,7 @@ void glTexCoord3f( GLfloat s, GLfloat t, GLfloat r ) {
 void glTexCoord4f( GLfloat s, GLfloat t, GLfloat r, GLfloat q ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         getList(g_state->currentDisplayList)->useTex = GL_TRUE;
         getList(g_state->currentDisplayList)->vTex = vec4(s, t, r, q);
     }
@@ -507,7 +507,7 @@ void glColor3f( GLfloat red, GLfloat green, GLfloat blue ) {
 void glColor4f( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         getList(g_state->currentDisplayList)->useColor = GL_TRUE;
         getList(g_state->currentDisplayList)->vColor = vec4(red, green, blue, alpha);
     }
@@ -543,7 +543,7 @@ void glVertex4f( GLfloat x, GLfloat y, GLfloat z, GLfloat w ) {
 void glNormal3f( GLfloat nx, GLfloat ny, GLfloat nz ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         getList(g_state->currentDisplayList)->useNormal = GL_TRUE;
         getList(g_state->currentDisplayList)->vNormal = vec4(nx, ny, nz);
     }
@@ -588,7 +588,7 @@ void glGenTextures( GLsizei n, GLuint *textures ) {
 void glBindTexture( GLenum target, GLuint texture ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::BIND_TEXTURE;
         comm.enum1 = target;
@@ -634,7 +634,7 @@ void glBindTexture( GLenum target, GLuint texture ) {
 void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::TEX_IMAGE_2D;
         comm.enum1 = target;
@@ -906,7 +906,7 @@ void glPixelStorei( GLenum pname, GLint param ) {
 void glRotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::ROTATE;
         comm.float1 = angle;
@@ -938,7 +938,7 @@ void glRotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z ) {
 void glTranslatef (GLfloat x, GLfloat y, GLfloat z) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::TRANSLATE;
         comm.float1 = x;
@@ -969,7 +969,7 @@ void glTranslatef (GLfloat x, GLfloat y, GLfloat z) {
 void glScalef( GLfloat x, GLfloat y, GLfloat z ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::SCALE;
         comm.float1 = x;
@@ -1000,7 +1000,7 @@ void glScalef( GLfloat x, GLfloat y, GLfloat z ) {
 void glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::ORTHO;
         comm.float1 = left;
@@ -1039,7 +1039,7 @@ void glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdo
 void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::FRUSTUM;
         comm.float1 = left;
@@ -1078,7 +1078,7 @@ void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLflo
 void glViewport( GLint x, GLint y, GLsizei width, GLsizei height ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::VIEWPORT;
         comm.int1 = x;
@@ -1105,7 +1105,7 @@ void glViewport( GLint x, GLint y, GLsizei width, GLsizei height ) {
 void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::BLEND_FUNC;
         comm.enum1 = sfactor;
@@ -1169,7 +1169,7 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
 void glEnable( GLenum cap ) {
     CHECK_NULL(g_state);
 
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::ENABLE;
         comm.enum1 = cap;
@@ -1222,7 +1222,7 @@ void glEnable( GLenum cap ) {
 void glDisable( GLenum cap ) {
     CHECK_NULL(g_state);
     
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::DISABLE;
         comm.enum1 = cap;
@@ -1275,7 +1275,7 @@ void glDisable( GLenum cap ) {
 void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
     CHECK_NULL(g_state);
     
-    if (g_state->withinNewEndListBlock) {
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::TEX_PARAM_I;
         comm.enum1 = target;
@@ -1363,6 +1363,19 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
 
 void glScissor( GLint x, GLint y, GLsizei width, GLsizei height) {
     CHECK_NULL(g_state);
+
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+        gfx_command comm;
+        comm.type = gfx_command::SCISSOR;
+        comm.int1 = x;
+        comm.int2 = y;
+        comm.size1 = width;
+        comm.size2 = height;
+        getList(g_state->currentDisplayList)->commands.push_back(comm);
+    }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
     
     if (width < 0 || height < 0) {
         setError(GL_INVALID_VALUE);
@@ -1430,6 +1443,16 @@ void glEndList( void ) {
 }
 void glCallList( GLuint list ) {
     CHECK_NULL(g_state);
+
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+        gfx_command comm;
+        comm.type = gfx_command::CALL_LIST;
+        comm.uint1 = list;
+        getList(g_state->currentDisplayList)->commands.push_back(comm);
+    }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
     
     if (list == 0) return;
     
