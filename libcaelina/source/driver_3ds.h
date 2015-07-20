@@ -41,7 +41,7 @@ struct VBO {
         numVertices = vdat.size();
         if (currentSize > maxSize) return -1;
         _3ds_vertex *ver = (_3ds_vertex *)data;
-        for (int i = 0; i < vdat.size(); ++i) {
+        for (unsigned int i = 0; i < vdat.size(); ++i) {
             ver[i].color = vec4(vdat[i].color);
             ver[i].texCoord = vec4(vdat[i].textureCoord);
             ver[i].pos.x = vdat[i].position.x;

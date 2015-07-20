@@ -202,7 +202,7 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
     }
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
-            mu_model[i*4 + j] = modelview[i*4 + (3-j)];
+            mu_model[i*4 + j] = modelview.at(i*4 + (3-j));
         }
     }
 

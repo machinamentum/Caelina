@@ -36,6 +36,10 @@ public:
         return m[index / 4][index % 4];
     }
 
+    float at(unsigned int index) const {
+        return m[index / 4][index % 4];;
+    }
+
     float determinate() const {
         return
         m[0][3] * m[1][2] * m[2][1] * m[3][0] - m[0][2] * m[1][3] * m[2][1] * m[3][0] -

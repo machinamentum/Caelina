@@ -34,7 +34,7 @@ CFLAGS	:= -Wall -O2 \
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
-CXXFLAGS	:= $(CFLAGS) -fpermissive -fno-rtti -fno-exceptions -std=gnu++11 -fomit-frame-pointer
+CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11 -fomit-frame-pointer
 
 ASFLAGS	:= $(ARCH)
 

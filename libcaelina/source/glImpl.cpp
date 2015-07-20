@@ -32,22 +32,6 @@ static void *gfx_platform_texture_malloc(u32 size) {
 #endif
 }
 
-static void *gfx_platform_malloc(u32 size) {
-#ifdef _3DS
-    return linearAlloc(size);
-#else
-    return malloc(size);
-#endif
-}
-
-static void gfx_platform_texture_free(u8 *loc) {
-#ifdef _3DS
-    linearFree(loc);
-#else
-    free(loc);
-#endif
-}
-
 
 void* gfxCreateDevice(int width, int height) {
     gfx_device* dev = NULL;
@@ -170,6 +154,9 @@ static void executeList(gfx_display_list *list) {
                 break;
             case gfx_command::LIGHTFV:
                 glLightfv(comm.enum1, comm.enum2, comm.floats);
+                break;
+
+            case gfx_command::NONE:
                 break;
         }
     }
