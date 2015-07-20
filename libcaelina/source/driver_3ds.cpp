@@ -233,7 +233,7 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
         vtemp = light->specular;
         vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
         GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_specular"), (u32*)&vtemp[0], 1);
-        vtemp = modelview * light->position;
+        vtemp = light->position;
         vtemp = {vtemp.w, vtemp.z, vtemp.y, vtemp.x};
         GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_position"), (u32*)&vtemp[0], 1);
         vtemp = light->spotlightDirection;
@@ -241,7 +241,7 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
         GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_spotdir"), (u32*)&vtemp[0], 1);
         vtemp = {0.0f, light->spotlightExpo, cosf(light->spotlightCutoff), light->spotlightCutoff};
         GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_spot_cutoff"), (u32*)&vtemp[0], 1);
-        vtemp = {0.0f, light->quadraticAttenuation, cosf(light->linearAttentuation), light->constantAttenuation};
+        vtemp = {0.0f, light->quadraticAttenuation, cosf(light->linearAttenuation), light->constantAttenuation};
         GPU_SetFloatUniform(GPU_VERTEX_SHADER, shaderInstanceGetUniformLocation(vertex_lighting_shader.vertexShader, "light0_attenuation"), (u32*)&vtemp[0], 1);
 
         //material

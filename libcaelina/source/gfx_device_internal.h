@@ -164,6 +164,8 @@ struct gfx_command {
         TEX_PARAM_I,
         SCISSOR,
         CALL_LIST,
+        LIGHTF,
+        LIGHTFV,
         NONE
     };
 
@@ -175,22 +177,7 @@ struct gfx_command {
     GLenum enum1 = 0;
     GLenum enum2 = 0;
     GLenum enum3 = 0;
-    union {
-        GLclampf clamp1;
-        GLfloat float1;
-    };
-    union {
-        GLclampf clamp2;
-        GLfloat float2;
-    };
-    union {
-        GLclampf clamp3;
-        GLfloat float3;
-    };
-    union {
-        GLclampf clamp4;
-        GLfloat float4;
-    };
+    GLfloat floats[4];
     GLfloat float5;
     GLfloat float6;
     GLbitfield mask1;
@@ -226,7 +213,7 @@ struct gfx_light {
     float spotlightExpo = 0.0; // [0.0, 128.0]
     float spotlightCutoff = 180.0; // [0.0, 90.0], 180.0
     float constantAttenuation = 1.0; // [0.0, inf]
-    float linearAttentuation = 0.0; // [0.0, inf]
+    float linearAttenuation = 0.0; // [0.0, inf]
     float quadraticAttenuation = 0.0; // [0.0, inf]
 };
 
