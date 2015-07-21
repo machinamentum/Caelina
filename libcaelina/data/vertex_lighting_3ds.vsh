@@ -168,12 +168,9 @@ endmain:
 
 // r0 = data, r1.x = pow
 pow:
-    loop pow128_maxloop
-        mul r0, r0, r0
-        add r1.x, r1.x, negative_one.x
-        cmp r1.xy, zero.xy, <=, <=
-        break cc.x
-      endloop
+    log r15, r0
+    mul r15, r15, r1.xxxx
+    exp r0, r15
     nop
 end_pow:
 
