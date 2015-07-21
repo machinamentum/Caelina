@@ -405,6 +405,8 @@ void glBegin( GLenum mode ) {
         comm.type = gfx_command::BEGIN;
         comm.enum1 = mode;
         getList(g_state->currentDisplayList)->commands.push_back(comm);
+
+        g_state->vertexDrawMode = mode;
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
