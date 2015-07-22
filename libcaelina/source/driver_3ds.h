@@ -84,6 +84,7 @@ public:
     virtual void render_vertices(const mat4& projection, const mat4& modelview);
     virtual void render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units);
     virtual void repack_texture(gfx_texture& tex);
+    virtual void free_texture(gfx_texture& tex);
     virtual u8 *cache_vertex_list(GLuint *size);
     
 };

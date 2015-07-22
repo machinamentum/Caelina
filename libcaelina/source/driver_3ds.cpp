@@ -113,11 +113,21 @@ void gfx_device_3ds::repack_texture(gfx_texture &tex) {
     linearFree(tex.colorBuffer);
     if (vramSpaceFree() < size) {
         tex.colorBuffer = (GLubyte*)dst;
+        tex.extdata = 0;
     } else {
         tex.colorBuffer = (GLubyte*)vramMemAlign(size, 0x80);
         GX_RequestDma(NULL, dst, (u32*)tex.colorBuffer, size);
         safeWaitForEvent(gspEvents[GSPEVENT_DMA]);
         linearFree(dst);
+        tex.extdata = 1;
+    }
+}
+
+void gfx_device_3ds::free_texture(gfx_texture &tex) {
+    if (tex.extdata) {
+        vramFree(tex.colorBuffer);
+    } else {
+        linearFree(tex.colorBuffer);
     }
 }
 

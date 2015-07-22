@@ -71,6 +71,16 @@ static gfx_display_list *getList(GLuint name) {
     return list;
 }
 
+static gfx_texture *getTexture(GLuint name) {
+    for(unsigned int i = 0; i < g_state->textures.size(); i++) {
+        if(g_state->textures[i].tname == g_state->currentBoundTexture) {
+            return &g_state->textures[i];
+        }
+    }
+
+    return NULL;
+}
+
 static void executeList(gfx_display_list *list) {
     vec4 color = list->vColor;
     vec4 tex = list->vTex;
@@ -577,6 +587,26 @@ void glGenTextures( GLsizei n, GLuint *textures ) {
         textures[i] = tname;
 
         g_state->textures.push(gfx_texture(tname));
+    }
+}
+
+void glDeleteTextures( GLsizei n, const GLuint *textures) {
+    CHECK_NULL(g_state);
+
+    if (n < 0) {
+        setError(GL_INVALID_VALUE);
+        return;
+    }
+
+    for (GLsizei i = 0; i < n; ++i) {
+        gfx_texture *text = getTexture(textures[i]);
+        if (text) {
+            g_state->device->free_texture(*text);
+        }
+        g_state->textures.erase(text);
+        if (textures[i] == g_state->currentBoundTexture) {
+            g_state->currentBoundTexture = 0;
+        }
     }
 }
 

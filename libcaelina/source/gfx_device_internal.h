@@ -78,6 +78,20 @@ public:
 
         return false;
     }
+
+    void erase(T* data) {
+        int index = 0;
+        for (int i = 0 ; i < size(); ++i) {
+            if (data == &buffer[i]) {
+                index = i;
+                break;
+            }
+        }
+        for (int i = index; i < size() - 1; i++) {
+            buffer[i] = buffer[i + 1];
+        }
+        --current_index;
+    }
 };
 
 struct vertex {
@@ -116,6 +130,8 @@ struct gfx_texture {
     GLenum mag_filter = GL_LINEAR;
     GLenum wrap_s = GL_REPEAT;
     GLenum wrap_t = GL_REPEAT;
+
+    GLuint extdata = 0;
 
     gfx_texture(GLuint name = 0, GLenum tar = 0) {
         tname = name;
@@ -314,6 +330,7 @@ public:
     virtual void render_vertices(const mat4& projection, const mat4& modelview) = 0;
     virtual void render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units) = 0;
     virtual void repack_texture(gfx_texture &tex) {}
+    virtual void free_texture(gfx_texture &tex) = 0;
     virtual u8 *cache_vertex_list(GLuint *size) = 0;
     
     int getWidth() {
