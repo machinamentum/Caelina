@@ -101,6 +101,9 @@ static void tileImage32(u32* src, u32* dst, int width, int height)
     }
 }
 
+static
+void safeWaitForEvent(Handle event);
+extern Handle gspEvents[GSPEVENT_MAX];
 
 void gfx_device_3ds::repack_texture(gfx_texture &tex) {
     u32 size = 4*tex.width*tex.height;
@@ -108,7 +111,14 @@ void gfx_device_3ds::repack_texture(gfx_texture &tex) {
     u32 *dst = (u32 *)linearMemAlign(size, 0x80);
     tileImage32((u32*)tex.colorBuffer, dst, tex.width, tex.height);
     linearFree(tex.colorBuffer);
-    tex.colorBuffer = (u8*)dst;
+    if (vramSpaceFree() < size) {
+        tex.colorBuffer = (GLubyte*)dst;
+    } else {
+        tex.colorBuffer = (GLubyte*)vramMemAlign(size, 0x80);
+        GX_RequestDma(NULL, dst, (u32*)tex.colorBuffer, size);
+        safeWaitForEvent(gspEvents[GSPEVENT_DMA]);
+        linearFree(dst);
+    }
 }
 
 static GPU_BLENDFACTOR gl_blendfactor(GLenum factor) {
@@ -360,8 +370,6 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
     GPU_SetDummyTexEnv(4);
     GPU_SetDummyTexEnv(5);
 }
-
-extern Handle gspEvents[GSPEVENT_MAX];
 
 static
 void safeWaitForEvent(Handle event) {
