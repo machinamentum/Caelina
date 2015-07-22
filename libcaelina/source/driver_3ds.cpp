@@ -373,7 +373,7 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
 
 static
 void safeWaitForEvent(Handle event) {
-    Result res = svcWaitSynchronization(event, 30*1000*1000);
+    Result res = svcWaitSynchronization(event, 1000*1000*1000);
     if(!res)svcClearEvent(event);
 }
 
