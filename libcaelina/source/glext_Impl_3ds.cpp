@@ -1,5 +1,5 @@
 #include <GL/gl.h>
-#include <GL/glext.h>
+#include <GL/ctr.h>
 #include "glImpl.h"
 #include "driver_3ds.h"
 

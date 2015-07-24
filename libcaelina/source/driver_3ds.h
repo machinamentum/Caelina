@@ -6,6 +6,7 @@
 
 #include <3ds.h>
 #include <GL/glext.h>
+#include <GL/ctr.h>
 
 struct _3ds_vec3 {
     float x, y, z;
