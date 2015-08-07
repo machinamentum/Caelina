@@ -165,6 +165,24 @@ static void executeList(gfx_display_list *list) {
             case gfx_command::LIGHTFV:
                 glLightfv(comm.enum1, comm.enum2, comm.floats);
                 break;
+            case gfx_command::ALPHA_FUNC:
+                glAlphaFunc(comm.enum1, comm.floats[0]);
+                break;
+            case gfx_command::COLOR_MASK:
+                glColorMask(comm.uint1, comm.int1, comm.int2, comm.int3);
+                break;
+            case gfx_command::DEPTH_MASK:
+                glDepthMask(comm.uint1);
+                break;
+            case gfx_command::STENCIL_MASK:
+                glStencilMask(comm.uint1);
+                break;
+            case gfx_command::STENCIL_FUNC:
+                glStencilFunc(comm.enum1, comm.int1, comm.uint1);
+                break;
+            case gfx_command::STENCIL_OP:
+                glStencilOp(comm.enum1, comm.enum2, comm.enum3);
+                break;
 
             case gfx_command::NONE:
                 break;
@@ -181,7 +199,7 @@ void setError(GLenum error) {
 }
 
 GLenum glGetError (void) {
-    CHECK_NULL(g_state, 0);
+    CHECK_NULL(g_state, -1);
 
     //TODO implement multiple error flags.
     GLenum error = g_state->errorFlag;
@@ -518,6 +536,11 @@ void glColor4f( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha ) {
     }
 
     g_state->currentVertexColor = vec4(red, green, blue, alpha);
+}
+
+void glVertex2i( GLint x, GLint y )
+{
+    glVertex2f((GLfloat)x, (GLfloat)y);
 }
 
 void glVertex2f( GLfloat x, GLfloat y ) {
@@ -1236,6 +1259,14 @@ void glEnable( GLenum cap ) {
         case (GL_LIGHT7): {
             g_state->enableLight[GL_LIGHT0 - cap] = GL_TRUE;
         } break;
+
+        case (GL_ALPHA_TEST): {
+            g_state->enableAlphaTest = GL_TRUE;
+        } break;
+
+        case (GL_STENCIL_TEST): {
+            g_state->enableStencilTest = GL_TRUE;
+        } break;
             
         default: {
             setError(GL_INVALID_ENUM);
@@ -1289,7 +1320,15 @@ void glDisable( GLenum cap ) {
         case (GL_LIGHT7): {
             g_state->enableLight[GL_LIGHT0 - cap] = GL_FALSE;
         } break;
-            
+
+        case (GL_ALPHA_TEST): {
+            g_state->enableAlphaTest = GL_FALSE;
+        } break;
+
+        case (GL_STENCIL_TEST): {
+            g_state->enableStencilTest = GL_FALSE;
+        } break;
+
         default: {
             setError(GL_INVALID_ENUM);
             return;
@@ -1493,7 +1532,6 @@ void glCallList( GLuint list ) {
 
 void glLightf( GLenum light, GLenum pname, GLfloat param ) {
     CHECK_NULL(g_state);
-    CHECK_WITHIN_BEGIN_END(g_state);
 
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
@@ -1503,6 +1541,10 @@ void glLightf( GLenum light, GLenum pname, GLfloat param ) {
         comm.floats[0] = param;
         getList(g_state->currentDisplayList)->commands.push_back(comm);
     }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
+    CHECK_WITHIN_BEGIN_END(g_state);
 
     switch (light) {
         case GL_LIGHT0:
@@ -1592,7 +1634,6 @@ static int get_light_params_size( GLenum pname ) {
 
 void glLightfv( GLenum light, GLenum pname, const GLfloat *params ) {
     CHECK_NULL(g_state);
-    CHECK_WITHIN_BEGIN_END(g_state);
 
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
@@ -1605,6 +1646,10 @@ void glLightfv( GLenum light, GLenum pname, const GLfloat *params ) {
 
         getList(g_state->currentDisplayList)->commands.push_back(comm);
     }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
+    CHECK_WITHIN_BEGIN_END(g_state);
 
     switch (light) {
         case GL_LIGHT0:
@@ -1693,6 +1738,201 @@ void glLightfv( GLenum light, GLenum pname, const GLfloat *params ) {
         default: {
             setError(GL_INVALID_ENUM);
         } return;
+    }
+}
+
+void glAlphaFunc( GLenum func, GLclampf ref ) {
+    CHECK_NULL(g_state);
+
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+        gfx_command comm;
+        comm.type = gfx_command::ALPHA_FUNC;
+        comm.enum1 = func;
+        comm.floats[0] = ref;
+        getList(g_state->currentDisplayList)->commands.push_back(comm);
+    }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
+    CHECK_WITHIN_BEGIN_END(g_state);
+
+    switch (func) {
+        case GL_NEVER:
+        case GL_LESS:
+        case GL_EQUAL:
+        case GL_LEQUAL:
+        case GL_GREATER:
+        case GL_NOTEQUAL:
+        case GL_GEQUAL:
+        case GL_ALWAYS: {
+            g_state->alphaTestFunc = func;
+            g_state->alphaTestRef = clampf(ref, 0.0, 1.0);
+        } break;
+
+        default: {
+            setError(GL_INVALID_ENUM);
+            return;
+        }
+    }
+}
+
+void glColorMask( GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha ) {
+    CHECK_NULL(g_state);
+
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+        gfx_command comm;
+        comm.type = gfx_command::COLOR_MASK;
+        comm.uint1 = red;
+        comm.int1 = green;
+        comm.int2 = blue;
+        comm.int3 = alpha;
+        getList(g_state->currentDisplayList)->commands.push_back(comm);
+    }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
+    g_state->colorMaskRed = red != 0;
+    g_state->colorMaskGreen = green != 0;
+    g_state->colorMaskBlue = blue != 0;
+    g_state->colorMaskAlpha = alpha != 0;
+}
+
+void glDepthMask( GLboolean flag ) {
+    CHECK_NULL(g_state);
+
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+        gfx_command comm;
+        comm.type = gfx_command::DEPTH_MASK;
+        comm.uint1 = flag;
+        getList(g_state->currentDisplayList)->commands.push_back(comm);
+    }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
+    CHECK_WITHIN_BEGIN_END(g_state);
+
+    g_state->depthMask = flag != 0;
+}
+
+void glStencilFunc( GLenum func, GLint ref, GLuint mask ) {
+    CHECK_NULL(g_state);
+
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+        gfx_command comm;
+        comm.type = gfx_command::STENCIL_FUNC;
+        comm.enum1 = func;
+        comm.int1 = ref;
+        comm.uint1 = mask;
+        getList(g_state->currentDisplayList)->commands.push_back(comm);
+    }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
+    switch (func) {
+        case GL_NEVER:
+        case GL_LESS:
+        case GL_EQUAL:
+        case GL_LEQUAL:
+        case GL_GREATER:
+        case GL_NOTEQUAL:
+        case GL_GEQUAL:
+        case GL_ALWAYS: {
+            g_state->stencilFunc = func;
+            g_state->stencilRef = clampi(ref, 0, (2 << 8) - 1); // TODO get number of actual stencil bits
+            g_state->stencilFuncMask = mask;
+        } break;
+
+        default: {
+            setError(GL_INVALID_ENUM);
+            return;
+        }
+    }
+
+}
+
+void glStencilMask( GLuint mask ) {
+    CHECK_NULL(g_state);
+
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+        gfx_command comm;
+        comm.type = gfx_command::STENCIL_MASK;
+        comm.uint1 = mask;
+        getList(g_state->currentDisplayList)->commands.push_back(comm);
+    }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
+    g_state->stencilMask = mask;
+
+}
+
+void glStencilOp( GLenum fail, GLenum zfail, GLenum zpass ) {
+    CHECK_NULL(g_state);
+
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+        gfx_command comm;
+        comm.type = gfx_command::STENCIL_OP;
+        comm.enum1 = fail;
+        comm.enum2 = zfail;
+        comm.enum3 = zpass;
+        getList(g_state->currentDisplayList)->commands.push_back(comm);
+    }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
+    CHECK_WITHIN_BEGIN_END(g_state);
+
+    switch (fail) {
+        case GL_KEEP:
+        case GL_ZERO:
+        case GL_REPLACE:
+        case GL_INCR:
+        case GL_INCR_WRAP:
+        case GL_DECR:
+        case GL_DECR_WRAP:
+        case GL_INVERT: {
+
+        } break;
+
+        default: {
+            setError(GL_INVALID_ENUM);
+        }
+    }
+
+    switch (zfail) {
+        case GL_KEEP:
+        case GL_ZERO:
+        case GL_REPLACE:
+        case GL_INCR:
+        case GL_INCR_WRAP:
+        case GL_DECR:
+        case GL_DECR_WRAP:
+        case GL_INVERT: {
+
+        } break;
+
+        default: {
+            setError(GL_INVALID_ENUM);
+        }
+    }
+
+    switch (zpass) {
+        case GL_KEEP:
+        case GL_ZERO:
+        case GL_REPLACE:
+        case GL_INCR:
+        case GL_INCR_WRAP:
+        case GL_DECR:
+        case GL_DECR_WRAP:
+        case GL_INVERT: {
+            g_state->stencilOpSFail = fail;
+            g_state->stencilOpZFail = zfail;
+            g_state->stencilOpZPass = zpass;
+        } break;
+
+        default: {
+            setError(GL_INVALID_ENUM);
+        }
     }
 }
 

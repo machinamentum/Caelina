@@ -111,7 +111,7 @@ void gfx_device_3ds::repack_texture(gfx_texture &tex) {
     u32 *dst = (u32 *)linearMemAlign(size, 0x80);
     tileImage32((u32*)tex.colorBuffer, dst, tex.width, tex.height);
     linearFree(tex.colorBuffer);
-    if (vramSpaceFree() < size) {
+    if (true) {
         tex.colorBuffer = (GLubyte*)dst;
         tex.extdata = 0;
     } else {
@@ -190,6 +190,36 @@ static GPU_SCISSORMODE glext_scissor_mode(GLenum mode) {
     }
 
     return GPU_SCISSOR_DISABLE;
+}
+
+static GPU_TESTFUNC gl_writefunc(GLenum func) {
+    switch (func) {
+        case GL_NEVER: return GPU_NEVER;
+        case GL_LESS: return GPU_LESS;
+        case GL_EQUAL: return GPU_EQUAL;
+        case GL_LEQUAL: return GPU_LEQUAL;
+        case GL_GREATER: return GPU_GREATER;
+        case GL_NOTEQUAL: return GPU_NOTEQUAL;
+        case GL_GEQUAL: return GPU_GEQUAL;
+        case GL_ALWAYS: return GPU_ALWAYS;
+    }
+
+    return GPU_NEVER;
+}
+
+static GPU_STENCILOP gl_stencilop(GLenum func) {
+    switch (func) {
+        case GL_KEEP: return GPU_KEEP;
+//        case GL_ZERO:
+        case GL_REPLACE: return GPU_XOR;
+//        case GL_INCR:
+//        case GL_INCR_WRAP:
+//        case GL_DECR:
+//        case GL_DECR_WRAP:
+//        case GL_INVERT:
+    }
+
+    return GPU_XOR;
 }
 
 u8 *gfx_device_3ds::cache_vertex_list(GLuint *size) {
@@ -304,10 +334,12 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
 
     GPU_DepthMap(-1.0f, 0.0f);
     GPU_SetFaceCulling(GPU_CULL_NONE);
-    GPU_SetStencilTest(false, GPU_ALWAYS, 0x00, 0xFF, 0x00);
-    GPU_SetStencilOp(GPU_KEEP, GPU_KEEP, GPU_KEEP);
+    u8 stencil_ref = g_state->stencilRef;
+    GPU_SetStencilTest(g_state->enableStencilTest, gl_writefunc(g_state->stencilFunc), stencil_ref, g_state->stencilFuncMask, ~stencil_ref);
+    GPU_SetStencilOp(gl_stencilop(g_state->stencilOpSFail), gl_stencilop(g_state->stencilOpZFail), gl_stencilop(g_state->stencilOpZPass));
     GPU_SetBlendingColor(0,0,0,0);
-    GPU_SetDepthTestAndWriteMask(g_state->enableDepthTest, GPU_GEQUAL, GPU_WRITE_ALL);
+    GPU_WRITEMASK write_mask = (GPU_WRITEMASK)((g_state->colorMaskRed << 0) | (g_state->colorMaskGreen << 1) | (g_state->colorMaskBlue << 2) | (g_state->colorMaskAlpha << 3) | (g_state->depthMask << 4));
+    GPU_SetDepthTestAndWriteMask(g_state->enableDepthTest, GPU_GEQUAL, write_mask);
     GPUCMD_AddMaskedWrite(GPUREG_0062, 0x1, 0);
     GPUCMD_AddWrite(GPUREG_0118, 0);
 
@@ -318,7 +350,8 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
                          gl_blendfactor(g_state->blendSrcFactor), gl_blendfactor(g_state->blendDstFactor)
                          );
 
-    GPU_SetAlphaTest(false, GPU_ALWAYS, 0x00);
+    u8 alpha_ref = (u8)(g_state->alphaTestRef * 255.0f);
+    GPU_SetAlphaTest(g_state->enableAlphaTest, gl_writefunc(g_state->alphaTestFunc), alpha_ref);
 
     if (!g_state->enableTexture2D) {
         GPU_SetTexEnv(

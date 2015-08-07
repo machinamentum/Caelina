@@ -182,6 +182,12 @@ struct gfx_command {
         CALL_LIST,
         LIGHTF,
         LIGHTFV,
+        ALPHA_FUNC,
+        COLOR_MASK,
+        DEPTH_MASK,
+        STENCIL_MASK,
+        STENCIL_FUNC,
+        STENCIL_OP,
         NONE
     };
 
@@ -278,12 +284,33 @@ struct gfx_state {
     GLenum blendSrcFactor = GL_ONE;
     GLenum blendDstFactor = GL_ZERO;
 
+    GLenum alphaTestFunc = GL_ALWAYS;
+    GLclampf alphaTestRef = 0.0;
+
+    GLboolean colorMaskRed = GL_TRUE;
+    GLboolean colorMaskBlue = GL_TRUE;
+    GLboolean colorMaskGreen = GL_TRUE;
+    GLboolean colorMaskAlpha = GL_TRUE;
+
+    GLboolean depthMask = GL_TRUE;
+
+    GLuint stencilMask = 0xFFFFFFFF;
+    GLenum stencilFunc = GL_ALWAYS;
+    GLuint stencilFuncMask = 0xFFFFFFFF;
+    GLint stencilRef = 0;
+
+    GLenum stencilOpSFail = GL_KEEP;
+    GLenum stencilOpZFail = GL_KEEP;
+    GLenum stencilOpZPass = GL_KEEP;
+
     GLboolean enableTexture2D = GL_FALSE;
     GLboolean enableDepthTest = GL_FALSE;
     GLboolean enableBlend = GL_FALSE;
     GLboolean enableScissorTest = GL_FALSE;
     GLboolean enableLighting = GL_FALSE;
     GLboolean enableLight[IMPL_MAX_LIGHTS];
+    GLboolean enableAlphaTest = GL_FALSE;
+    GLboolean enableStencilTest = GL_FALSE;
 
     gfx_vec4i scissorBox;
 
@@ -348,6 +375,10 @@ inline float min(float a, float b) {
 }
 
 inline float clampf(float val, float low, float hi) {
+    return val < low ? low : (val > hi ? hi : val);
+}
+
+inline int clampi(int val, int low, int hi) {
     return val < low ? low : (val > hi ? hi : val);
 }
 
