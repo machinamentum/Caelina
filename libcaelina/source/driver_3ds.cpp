@@ -378,17 +378,17 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
             if (text->format == GL_ALPHA) {
                 GPU_SetTexEnv(0,
                               GPU_TEVSOURCES(GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR),
-                              GPU_TEVSOURCES(GPU_TEXTURE0, GPU_TEXTURE0, GPU_TEXTURE0),
+                              GPU_TEVSOURCES(GPU_TEXTURE0, GPU_PRIMARY_COLOR, GPU_TEXTURE0),
                               GPU_TEVOPERANDS(0,0,0),
                               GPU_TEVOPERANDS(0,0,0),
                               GPU_REPLACE, GPU_MODULATE,
                               0xFFFFFFFF);
             } else {
                 GPU_SetTexEnv(0,
-                              GPU_TEVSOURCES(GPU_TEXTURE0, GPU_TEXTURE0, GPU_TEXTURE0),
-                              GPU_TEVSOURCES(GPU_TEXTURE0, GPU_TEXTURE0, GPU_TEXTURE0),
+                              GPU_TEVSOURCES(GPU_TEXTURE0, GPU_PRIMARY_COLOR, GPU_TEXTURE0),
+                              GPU_TEVSOURCES(GPU_TEXTURE0, GPU_PRIMARY_COLOR, GPU_TEXTURE0),
                               GPU_TEVOPERANDS(0,0,0),
-                              GPU_TEVOPERANDS(2,2,2),
+                              GPU_TEVOPERANDS(0,0,0),
                               GPU_MODULATE, GPU_MODULATE,
                               0xFFFFFFFF);
             }
