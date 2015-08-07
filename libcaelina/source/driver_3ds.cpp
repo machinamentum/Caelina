@@ -211,7 +211,7 @@ static GPU_STENCILOP gl_stencilop(GLenum func) {
     switch (func) {
         case GL_KEEP: return GPU_KEEP;
 //        case GL_ZERO:
-        case GL_REPLACE: return GPU_XOR;
+        case GL_REPLACE: return (GPU_STENCILOP)0x03;
 //        case GL_INCR:
 //        case GL_INCR_WRAP:
 //        case GL_DECR:
@@ -335,7 +335,7 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
     GPU_DepthMap(-1.0f, 0.0f);
     GPU_SetFaceCulling(GPU_CULL_NONE);
     u8 stencil_ref = g_state->stencilRef;
-    GPU_SetStencilTest(g_state->enableStencilTest, gl_writefunc(g_state->stencilFunc), stencil_ref, g_state->stencilFuncMask, ~stencil_ref);
+    GPU_SetStencilTest(g_state->enableStencilTest, gl_writefunc(g_state->stencilFunc), stencil_ref, g_state->stencilFuncMask, stencil_ref & g_state->stencilMask);
     GPU_SetStencilOp(gl_stencilop(g_state->stencilOpSFail), gl_stencilop(g_state->stencilOpZFail), gl_stencilop(g_state->stencilOpZPass));
     GPU_SetBlendingColor(0,0,0,0);
     GPU_WRITEMASK write_mask = (GPU_WRITEMASK)((g_state->colorMaskRed << 0) | (g_state->colorMaskGreen << 1) | (g_state->colorMaskBlue << 2) | (g_state->colorMaskAlpha << 3) | (g_state->depthMask << 4));
