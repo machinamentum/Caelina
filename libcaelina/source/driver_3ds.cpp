@@ -343,12 +343,14 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
     GPUCMD_AddMaskedWrite(GPUREG_0062, 0x1, 0);
     GPUCMD_AddWrite(GPUREG_0118, 0);
 
-    GPU_SetAlphaBlending(
-                         GPU_BLEND_ADD,
-                         GPU_BLEND_ADD,
-                         gl_blendfactor(g_state->blendSrcFactor), gl_blendfactor(g_state->blendDstFactor),
-                         gl_blendfactor(g_state->blendSrcFactor), gl_blendfactor(g_state->blendDstFactor)
-                         );
+    if (g_state->enableBlend) {
+        GPU_SetAlphaBlending(
+                             GPU_BLEND_ADD,
+                             GPU_BLEND_ADD,
+                             gl_blendfactor(g_state->blendSrcFactor), gl_blendfactor(g_state->blendDstFactor),
+                             gl_blendfactor(g_state->blendSrcFactor), gl_blendfactor(g_state->blendDstFactor)
+                             );
+    }
 
     u8 alpha_ref = (u8)(g_state->alphaTestRef * 255.0f);
     GPU_SetAlphaTest(g_state->enableAlphaTest, gl_writefunc(g_state->alphaTestFunc), alpha_ref);
