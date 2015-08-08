@@ -109,7 +109,7 @@ void gfx_device_3ds::repack_texture(gfx_texture &tex) {
     u32 size = 4*tex.width*tex.height;
     size = ((size - (size >> (2*(0+1)))) * 4) / 3;
     u32 *dst = (u32 *)linearMemAlign(size, 0x80);
-    tileImage32((u32*)tex.colorBuffer, dst, tex.width, tex.height);
+    tileImage32((u32*)tex.unpackedColorBuffer, dst, tex.width, tex.height);
     linearFree(tex.colorBuffer);
     if (true) {
         tex.colorBuffer = (GLubyte*)dst;

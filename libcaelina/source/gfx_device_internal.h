@@ -122,7 +122,8 @@ struct vertex {
 struct gfx_texture {
     GLuint tname;
     GLenum target;
-    GLubyte* colorBuffer;
+    GLubyte* colorBuffer = NULL;
+    GLubyte* unpackedColorBuffer = NULL;
     GLsizei width;
     GLsizei height;
     GLenum format;

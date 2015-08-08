@@ -798,7 +798,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
 
     if (!text) return;
 
-    text->colorBuffer = (GLubyte*)gfx_platform_texture_malloc(sizeof(GLubyte) * 4 * width * height);
+    text->unpackedColorBuffer = (GLubyte*)gfx_platform_texture_malloc(sizeof(GLubyte) * 4 * width * height);
     text->width = width;
     text->height = height;
     text->format = format;
@@ -813,10 +813,10 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
                         if(type == GL_UNSIGNED_BYTE) {
                             int index = (x + y * width) * 4;
                             GLubyte* bpixels = (GLubyte*)pixels;
-                            text->colorBuffer[index] = bpixels[accum];
-                            text->colorBuffer[index + 1] = bpixels[accum + 1];
-                            text->colorBuffer[index + 2] = bpixels[accum + 2];
-                            text->colorBuffer[index + 3] = bpixels[accum + 3];
+                            text->unpackedColorBuffer[index] = bpixels[accum];
+                            text->unpackedColorBuffer[index + 1] = bpixels[accum + 1];
+                            text->unpackedColorBuffer[index + 2] = bpixels[accum + 2];
+                            text->unpackedColorBuffer[index + 3] = bpixels[accum + 3];
                             accum += 4;
                         }
                     } break;
@@ -825,10 +825,10 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
                         if(type == GL_UNSIGNED_BYTE) {
                             int index = (x + y * width) * 4;
                             GLubyte* bpixels = (GLubyte*)pixels;
-                            text->colorBuffer[index] = 0x00;
-                            text->colorBuffer[index + 1] = 0x00;
-                            text->colorBuffer[index + 2] = 0x00;
-                            text->colorBuffer[index + 3] = bpixels[accum];
+                            text->unpackedColorBuffer[index] = 0x00;
+                            text->unpackedColorBuffer[index + 1] = 0x00;
+                            text->unpackedColorBuffer[index + 2] = 0x00;
+                            text->unpackedColorBuffer[index + 3] = bpixels[accum];
                             accum++;
                         }
                     } break;
@@ -915,16 +915,48 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
         return;
     }
 
-    for (GLint y = yoffset; y < yoffset + height; ++y) {
-        for (GLint x = xoffset; x < xoffset + width; ++x) {
-            GLubyte *bytes = (GLubyte *)pixels;
-            int index = ((x - xoffset) + (y - yoffset) * text->width) * 3;
-            text->colorBuffer[(x + (y * text->width)) * 4] = bytes[index + 2];
-            text->colorBuffer[(x + (y * text->width)) * 4 + 1] = bytes[index + 1];
-            text->colorBuffer[(x + (y * text->width)) * 4 + 2] = bytes[index];
-            text->colorBuffer[(x + (y * text->width)) * 4 + 3] = 0xFF;
+    if(pixels) {
+        unsigned int accum = 0;
+        //TODO implement unpacking for more texture formats
+        for(GLsizei y = yoffset; y < yoffset + height && y < text->height; ++y) {
+            for(GLsizei x = xoffset; x < yoffset + width && x < text->width; ++x) {
+                switch(format) {
+                    case (GL_RGBA): {
+                        if(type == GL_UNSIGNED_BYTE) {
+                            int index = (x + y * text->width) * 4;
+                            int srcindex = ((x - xoffset) + y * width) * 4;
+                            GLubyte* bpixels = (GLubyte*)pixels;
+                            text->unpackedColorBuffer[index] = bpixels[srcindex];
+                            text->unpackedColorBuffer[index + 1] = bpixels[srcindex + 1];
+                            text->unpackedColorBuffer[index + 2] = bpixels[srcindex + 2];
+                            text->unpackedColorBuffer[index + 3] = bpixels[srcindex + 3];
+                            accum += 4;
+                        }
+                    } break;
+
+                    case (GL_ALPHA): {
+                        if(type == GL_UNSIGNED_BYTE) {
+                            int index = (x + y * text->width) * 4;
+                            int srcindex = ((x - xoffset) + y * width);
+                            GLubyte* bpixels = (GLubyte*)pixels;
+                            text->unpackedColorBuffer[index] = 0x00;
+                            text->unpackedColorBuffer[index + 1] = 0x00;
+                            text->unpackedColorBuffer[index + 2] = 0x00;
+                            text->unpackedColorBuffer[index + 3] = bpixels[srcindex];
+                            accum++;
+                        }
+                    } break;
+
+                }
+            }
+
+            while(accum % g_state->unpackAlignment != 0) {
+                accum++;
+            }
         }
     }
+
+    g_state->device->repack_texture(*text);
 }
 
 void glPixelStorei( GLenum pname, GLint param ) {
