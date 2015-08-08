@@ -81,13 +81,13 @@ public:
 
     void erase(T* data) {
         int index = 0;
-        for (int i = 0 ; i < size(); ++i) {
+        for (unsigned int i = 0 ; i < size(); ++i) {
             if (data == &buffer[i]) {
                 index = i;
                 break;
             }
         }
-        for (int i = index; i < size() - 1; i++) {
+        for (unsigned int i = index; i < size() - 1; i++) {
             buffer[i] = buffer[i + 1];
         }
         --current_index;
