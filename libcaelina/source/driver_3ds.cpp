@@ -209,17 +209,17 @@ static GPU_TESTFUNC gl_writefunc(GLenum func) {
 
 static GPU_STENCILOP gl_stencilop(GLenum func) {
     switch (func) {
-        case GL_KEEP: return GPU_KEEP;
-//        case GL_ZERO:
-        case GL_REPLACE: return (GPU_STENCILOP)0x03;
-//        case GL_INCR:
-//        case GL_INCR_WRAP:
-//        case GL_DECR:
-//        case GL_DECR_WRAP:
-//        case GL_INVERT:
+        case GL_KEEP: return GPU_STENCIL_KEEP;
+        case GL_ZERO: return GPU_STENCIL_ZERO;
+        case GL_REPLACE: return GPU_STENCIL_REPLACE;
+        case GL_INCR: return GPU_STENCIL_INCR;
+        case GL_INCR_WRAP: return GPU_STENCIL_INCR_WRAP;
+        case GL_DECR: return GPU_STENCIL_DECR;
+        case GL_DECR_WRAP: return GPU_STENCIL_DECR_WRAP;
+        case GL_INVERT: return GPU_STENCIL_INVERT;
     }
 
-    return GPU_XOR;
+    return GPU_STENCIL_KEEP;
 }
 
 u8 *gfx_device_3ds::cache_vertex_list(GLuint *size) {
