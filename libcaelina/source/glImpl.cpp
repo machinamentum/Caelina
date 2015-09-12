@@ -819,6 +819,15 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
                             text->unpackedColorBuffer[index + 3] = bpixels[accum + 3];
                             accum += 4;
                         }
+                        else if (type == GL_UNSIGNED_SHORT_5_5_5_1) {
+                            int index = (x + y * width) * 4;
+                            GLushort pixel = ((GLushort*)pixels)[accum];
+                            text->unpackedColorBuffer[index] = ((pixel >> 15) & 1) ? 0xFF : 0;
+                            text->unpackedColorBuffer[index + 1] = (pixel & 0b11111) << 3;
+                            text->unpackedColorBuffer[index + 2] = ((pixel >> 5) & 0b11111) << 3;
+                            text->unpackedColorBuffer[index + 3] = ((pixel >> 10) & 0b11111) << 3;
+                            accum ++;
+                        }
                     } break;
 
                     case (GL_ALPHA): {
@@ -884,6 +893,7 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
         case GL_BYTE:
         case GL_BITMAP:
         case GL_UNSIGNED_SHORT:
+        case GL_UNSIGNED_SHORT_5_5_5_1:
         case GL_SHORT:
         case GL_UNSIGNED_INT:
         case GL_INT:
@@ -931,6 +941,15 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
                             text->unpackedColorBuffer[index + 2] = bpixels[srcindex + 2];
                             text->unpackedColorBuffer[index + 3] = bpixels[srcindex + 3];
                             accum += 4;
+                        }
+                        else if (type == GL_UNSIGNED_SHORT_5_5_5_1) {
+                            int index = (x + y * width) * 4;
+                            GLushort pixel = ((GLushort*)pixels)[accum];
+                            text->unpackedColorBuffer[index] = ((pixel >> 15) & 1) ? 0xFF : 0;
+                            text->unpackedColorBuffer[index + 1] = (pixel & 0b11111) << 3;
+                            text->unpackedColorBuffer[index + 2] = ((pixel >> 5) & 0b11111) << 3;
+                            text->unpackedColorBuffer[index + 3] = ((pixel >> 10) & 0b11111) << 3;
+                            accum ++;
                         }
                     } break;
 
