@@ -438,7 +438,7 @@ void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& mod
                         {4}
                         );
     
-    GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), units);
+    GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), 0, units);
     GPU_FinishDrawing();
     GPUCMD_Finalize();
     GPUCMD_FlushAndRun(NULL);
@@ -464,7 +464,7 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
                         {0x3210},
                         {4}
                         );
-    GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), temp_vbo.numVertices);
+    GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), 0, temp_vbo.numVertices);
     GPU_FinishDrawing();
     GPUCMD_Finalize();
     GPUCMD_FlushAndRun(NULL);
