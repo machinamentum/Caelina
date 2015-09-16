@@ -26,7 +26,7 @@ static gfx_device *gfx_get_platform_driver(gfx_state *state, int w, int h) {
 
 static void *gfx_platform_texture_malloc(u32 size) {
 #ifdef _3DS
-    return linearMemAlign(size, 0x80);
+    return linearAlloc(size);
 #else
     return malloc(size);
 #endif
@@ -73,7 +73,7 @@ static gfx_display_list *getList(GLuint name) {
 
 static gfx_texture *getTexture(GLuint name) {
     for(unsigned int i = 0; i < g_state->textures.size(); i++) {
-        if(g_state->textures[i].tname == g_state->currentBoundTexture) {
+        if(g_state->textures[i].tname == name) {
             return &g_state->textures[i];
         }
     }
