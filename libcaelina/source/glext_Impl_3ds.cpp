@@ -3,6 +3,8 @@
 #include "glImpl.h"
 #include "driver_3ds.h"
 
+extern gfx_state *g_state;
+
 GLAPI void APIENTRY glScissorMode( GLenum mode ) {
     CHECK_NULL(g_state);
 

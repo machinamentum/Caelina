@@ -38,27 +38,69 @@ void GPU_SetDummyTexEnv(u8 num)
                   0xFFFFFFFF);
 }
 
+
+struct _3ds_vec3 {
+    float x, y, z;
+};
+
+struct _3ds_vertex {
+    _3ds_vec3 pos;
+    vec4 texCoord;
+    vec4 color;
+    vec4 normal;
+};
+
+struct VBO {
+    u8* data;
+    u32 currentSize; // in bytes
+    u32 maxSize; // in bytes
+    u32 numVertices;
+
+    VBO(u32 size) {
+        data = (u8 *)linearAlloc(size * sizeof(_3ds_vertex));
+        currentSize = 0;
+        maxSize = size * sizeof(_3ds_vertex);
+        numVertices = 0;
+    }
+
+    ~VBO() {
+
+    }
+
+    int set_data(sbuffer<vertex>& vdat) {
+        currentSize = vdat.size() * sizeof(_3ds_vertex);
+        numVertices = vdat.size();
+        if (currentSize > maxSize) return -1;
+        _3ds_vertex *ver = (_3ds_vertex *)data;
+        for (unsigned int i = 0; i < vdat.size(); ++i) {
+            ver[i].color = vec4(vdat[i].color);
+            ver[i].texCoord = vec4(vdat[i].textureCoord);
+            ver[i].pos.x = vdat[i].position.x;
+            ver[i].pos.y = vdat[i].position.y;
+            ver[i].pos.z = vdat[i].position.z;
+            ver[i].normal = vec4(vdat[i].normal);
+        }
+
+        return 0;
+    }
+    
+};
+
 gfx_device_3ds::gfx_device_3ds(gfx_state *state, int w, int h) : gfx_device(state, w, h) {
-    GPU_Init(NULL);
+    gpuCmdSize = 0x40000;
     gpuCmd = (u32*)linearAlloc(gpuCmdSize*4);
-    gpuOut=(u32*)vramMemAlign(height*width*8, 0x100);;
-    gpuDOut=(u32*)vramMemAlign(height*height*8, 0x100);;
+    gpuOut=(u32*)vramAlloc(height*width*4);
+    gpuDOut=(u32*)vramAlloc(height*height*4);
+    GPU_Init(NULL);
     GPU_Reset(NULL, gpuCmd, gpuCmdSize);
 
-    dvlb=DVLB_ParseFile((u32*)default_3ds_vsh_shbin, default_3ds_vsh_shbin_size);
+    dvlb_default = DVLB_ParseFile((u32*)default_3ds_vsh_shbin, default_3ds_vsh_shbin_size);
     shaderProgramInit(&shader);
-    shaderProgramSetVsh(&shader, &dvlb->DVLE[0]);
-    shaderProgramUse(&shader);
+    shaderProgramSetVsh(&shader, &dvlb_default->DVLE[0]);
 
-    dvlb=DVLB_ParseFile((u32*)vertex_lighting_3ds_vsh_shbin, vertex_lighting_3ds_vsh_shbin_size);
+    dvlb_lighting = DVLB_ParseFile((u32*)vertex_lighting_3ds_vsh_shbin, vertex_lighting_3ds_vsh_shbin_size);
     shaderProgramInit(&vertex_lighting_shader);
-    shaderProgramSetVsh(&vertex_lighting_shader, &dvlb->DVLE[0]);
-    shaderProgramUse(&vertex_lighting_shader);
-
-    GPUCMD_Finalize();
-    GPUCMD_FlushAndRun(NULL);
-    gspWaitForP3D();
-
+    shaderProgramSetVsh(&vertex_lighting_shader, &dvlb_lighting->DVLE[0]);
 }
 
 gfx_device_3ds::~gfx_device_3ds() {
@@ -108,19 +150,10 @@ extern Handle gspEvents[GSPEVENT_MAX];
 void gfx_device_3ds::repack_texture(gfx_texture &tex) {
     u32 size = 4*tex.width*tex.height;
     size = ((size - (size >> (2*(0+1)))) * 4) / 3;
-    u32 *dst = (u32 *)linearMemAlign(size, 0x80);
-    tileImage32((u32*)tex.unpackedColorBuffer, dst, tex.width, tex.height);
-    linearFree(tex.colorBuffer);
-    if (true) {
-        tex.colorBuffer = (GLubyte*)dst;
-        tex.extdata = 0;
-    } else {
-        tex.colorBuffer = (GLubyte*)vramMemAlign(size, 0x80);
-        GX_RequestDma(NULL, dst, (u32*)tex.colorBuffer, size);
-        safeWaitForEvent(gspEvents[GSPEVENT_DMA]);
-        linearFree(dst);
-        tex.extdata = 1;
-    }
+//    u32 *dst = (u32 *)linearAlloc(size);
+    if (!tex.colorBuffer) tex.colorBuffer = (u8 *)linearAlloc(size);
+    tileImage32((u32*)tex.unpackedColorBuffer, (u32 *)tex.colorBuffer, tex.width, tex.height);
+    tex.extdata = 0;
 }
 
 void gfx_device_3ds::free_texture(gfx_texture &tex) {
@@ -449,7 +482,7 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     GPUCMD_SetBufferOffset(0);
     
     setup_state(projection, modelview);
-
+    VBO temp_vbo = VBO(g_state->vertexBuffer.size());
     temp_vbo.set_data(g_state->vertexBuffer);
 
     SetAttributeBuffers(
@@ -469,6 +502,7 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     GPUCMD_Finalize();
     GPUCMD_FlushAndRun(NULL);
     safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
+    linearFree(temp_vbo.data);
     
 }
 

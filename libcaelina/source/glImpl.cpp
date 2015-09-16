@@ -53,7 +53,7 @@ void  gfxMakeCurrent(void* device) {
     g_state = ((gfx_device*)device)->g_state;
 }
 
-void  gfxFlush(unsigned char* fb) {
+void gfxFlush(unsigned char* fb) {
     CHECK_NULL(g_state);
     CHECK_NULL(fb);
 

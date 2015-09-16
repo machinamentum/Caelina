@@ -357,7 +357,7 @@ public:
     virtual void flush(u8 *fb) = 0;
     virtual void render_vertices(const mat4& projection, const mat4& modelview) = 0;
     virtual void render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units) = 0;
-    virtual void repack_texture(gfx_texture &tex) {}
+    virtual void repack_texture(gfx_texture &tex) = 0;
     virtual void free_texture(gfx_texture &tex) = 0;
     virtual u8 *cache_vertex_list(GLuint *size) = 0;
     

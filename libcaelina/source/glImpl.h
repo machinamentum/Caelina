@@ -30,8 +30,6 @@
         return __VA_ARGS__; \
     }
 
-struct gfx_state;
-extern gfx_state *g_state;
 
 #ifdef __cplusplus
 extern "C" {
