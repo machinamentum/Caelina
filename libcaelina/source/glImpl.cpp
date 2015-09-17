@@ -825,7 +825,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
                             text->unpackedColorBuffer[index + 0] = ((pixel >> 10) & 0b11111) << 3;
                             text->unpackedColorBuffer[index + 1] = ((pixel >> 5) & 0b11111) << 3;
                             text->unpackedColorBuffer[index + 2] = (pixel & 0b11111) << 3;
-                            text->unpackedColorBuffer[index + 3] = ((pixel >> 15) & 1) ? 0xFF : 0;
+                            text->unpackedColorBuffer[index + 3] = 0xFF - ((pixel >> 15) & 1) ? 0xFF : 0;
                             accum ++;
                         }
                     } break;
@@ -948,7 +948,7 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
                             text->unpackedColorBuffer[index + 0] = ((pixel >> 10) & 0b11111) << 3;
                             text->unpackedColorBuffer[index + 1] = ((pixel >> 5) & 0b11111) << 3;
                             text->unpackedColorBuffer[index + 2] = (pixel & 0b11111) << 3;
-                            text->unpackedColorBuffer[index + 3] = ((pixel >> 15) & 1) ? 0xFF : 0;
+                            text->unpackedColorBuffer[index + 3] = 0xFF - ((pixel >> 15) & 1) ? 0xFF : 0;
                             accum ++;
                         }
                     } break;
