@@ -370,7 +370,8 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
     u8 stencil_ref = g_state->stencilRef;
     GPU_SetStencilTest(g_state->enableStencilTest, gl_writefunc(g_state->stencilFunc), stencil_ref, g_state->stencilFuncMask, g_state->stencilMask);
     GPU_SetStencilOp(gl_stencilop(g_state->stencilOpSFail), gl_stencilop(g_state->stencilOpZFail), gl_stencilop(g_state->stencilOpZPass));
-    GPU_SetBlendingColor(0,0,0,0);
+    u32 blendColor = g_state->blendColor;
+    GPU_SetBlendingColor(blendColor & 0xFF, (blendColor >> 8) & 0xFF, (blendColor >> 16) & 0xFF, (blendColor >> 24) & 0xFF);
     GPU_WRITEMASK write_mask = (GPU_WRITEMASK)((g_state->colorMaskRed << 0) | (g_state->colorMaskGreen << 1) | (g_state->colorMaskBlue << 2) | (g_state->colorMaskAlpha << 3) | (g_state->depthMask << 4));
     GPU_SetDepthTestAndWriteMask(g_state->enableDepthTest, GPU_GEQUAL, write_mask);
     GPUCMD_AddMaskedWrite(GPUREG_0062, 0x1, 0);

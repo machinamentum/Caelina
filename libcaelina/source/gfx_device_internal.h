@@ -189,6 +189,7 @@ struct gfx_command {
         STENCIL_MASK,
         STENCIL_FUNC,
         STENCIL_OP,
+        BLEND_COLOR,
         NONE
     };
 
@@ -284,6 +285,8 @@ struct gfx_state {
 
     GLenum blendSrcFactor = GL_ONE;
     GLenum blendDstFactor = GL_ZERO;
+
+    GLuint blendColor = 0;
 
     GLenum alphaTestFunc = GL_ALWAYS;
     GLclampf alphaTestRef = 0.0;

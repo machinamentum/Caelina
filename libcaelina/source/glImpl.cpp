@@ -183,6 +183,9 @@ static void executeList(gfx_display_list *list) {
             case gfx_command::STENCIL_OP:
                 glStencilOp(comm.enum1, comm.enum2, comm.enum3);
                 break;
+            case gfx_command::BLEND_COLOR:
+                glBlendColor(comm.floats[0], comm.floats[1], comm.floats[2], comm.floats[3]);
+                break;
 
             case gfx_command::NONE:
                 break;
@@ -1987,5 +1990,29 @@ void glStencilOp( GLenum fail, GLenum zfail, GLenum zpass ) {
     }
 }
 
+void glBlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha ) {
+    CHECK_NULL(g_state);
+
+    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+        gfx_command comm;
+        comm.type = gfx_command::BLEND_COLOR;
+        comm.floats[0] = red;
+        comm.floats[1] = green;
+        comm.floats[2] = blue;
+        comm.floats[3] = alpha;
+        getList(g_state->currentDisplayList)->commands.push_back(comm);
+    }
+
+    CHECK_COMPILE_AND_EXECUTE(g_state);
+
+    CHECK_WITHIN_BEGIN_END(g_state);
+
+    u32 Value = 0;
+    Value |= ((GLuint)(clampf(red, 0.0f, 1.0f) * 255.0f) & 0xFF);
+    Value |= ((GLuint)(clampf(green, 0.0f, 1.0f) * 255.0f) & 0xFF) << 8;
+    Value |= ((GLuint)(clampf(blue, 0.0f, 1.0f) * 255.0f) & 0xFF) << 16;
+    Value |= ((GLuint)(clampf(alpha, 0.0f, 1.0f) * 255.0f) & 0xFF) << 24;
+    g_state->blendColor = Value;
+}
 
 }
