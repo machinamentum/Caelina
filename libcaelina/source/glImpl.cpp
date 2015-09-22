@@ -1236,10 +1236,10 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
         case (GL_ONE_MINUS_SRC_ALPHA):
         case (GL_DST_ALPHA):
         case (GL_ONE_MINUS_DST_ALPHA):
-            // case (GL_CONSTANT_COLOR):
-            // case (GL_ONE_MINUS_CONSTANT_COLOR):
-            // case (GL_CONSTANT_ALPHA):
-            // case (GL_ONE_MINUS_CONSTANT_ALPHA):
+         case (GL_CONSTANT_COLOR):
+         case (GL_ONE_MINUS_CONSTANT_COLOR):
+         case (GL_CONSTANT_ALPHA):
+         case (GL_ONE_MINUS_CONSTANT_ALPHA):
         case (GL_SRC_ALPHA_SATURATE): {
             g_state->blendSrcFactor = sfactor;
         } break;
@@ -1260,10 +1260,10 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
         case (GL_ONE_MINUS_SRC_ALPHA):
         case (GL_DST_ALPHA):
         case (GL_ONE_MINUS_DST_ALPHA):
-            // case (GL_CONSTANT_COLOR):
-            // case (GL_ONE_MINUS_CONSTANT_COLOR):
-            // case (GL_CONSTANT_ALPHA):
-            // case (GL_ONE_MINUS_CONSTANT_ALPHA):
+         case (GL_CONSTANT_COLOR):
+         case (GL_ONE_MINUS_CONSTANT_COLOR):
+         case (GL_CONSTANT_ALPHA):
+         case (GL_ONE_MINUS_CONSTANT_ALPHA):
         {
             g_state->blendDstFactor = dfactor;
         } break;
