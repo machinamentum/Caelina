@@ -825,10 +825,13 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
                         else if (type == GL_UNSIGNED_SHORT_5_5_5_1) {
                             int index = (x + y * width) * 4;
                             GLushort pixel = ((GLushort*)pixels)[accum];
-                            text->unpackedColorBuffer[index + 0] = ((pixel >> 10) & 0b11111) << 3;
-                            text->unpackedColorBuffer[index + 1] = ((pixel >> 5) & 0b11111) << 3;
-                            text->unpackedColorBuffer[index + 2] = (pixel & 0b11111) << 3;
-                            text->unpackedColorBuffer[index + 3] = 0xFF - ((pixel >> 15) & 1) ? 0xFF : 0;
+                            float R = (float)((pixel >> 11) & 0b11111) / 31.0f;
+                            float G = (float)((pixel >> 6) & 0b11111) / 31.0f;
+                            float B = (float)((pixel >> 1) & 0b11111) / 31.0f;
+                            text->unpackedColorBuffer[index + 0] = (GLubyte)(R *  255.0f);
+                            text->unpackedColorBuffer[index + 1] = (GLubyte)(G *  255.0f);
+                            text->unpackedColorBuffer[index + 2] = (GLubyte)(B *  255.0f);
+                            text->unpackedColorBuffer[index + 3] = 0xFF * (pixel & 1);
                             accum ++;
                         }
                     } break;
@@ -948,10 +951,13 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
                         else if (type == GL_UNSIGNED_SHORT_5_5_5_1) {
                             int index = (x + y * width) * 4;
                             GLushort pixel = ((GLushort*)pixels)[accum];
-                            text->unpackedColorBuffer[index + 0] = ((pixel >> 10) & 0b11111) << 3;
-                            text->unpackedColorBuffer[index + 1] = ((pixel >> 5) & 0b11111) << 3;
-                            text->unpackedColorBuffer[index + 2] = (pixel & 0b11111) << 3;
-                            text->unpackedColorBuffer[index + 3] = 0xFF - ((pixel >> 15) & 1) ? 0xFF : 0;
+                            float R = (float)((pixel >> 11) & 0b11111) / 31.0f;
+                            float G = (float)((pixel >> 6) & 0b11111) / 31.0f;
+                            float B = (float)((pixel >> 1) & 0b11111) / 31.0f;
+                            text->unpackedColorBuffer[index + 0] = (GLubyte)(R *  255.0f);
+                            text->unpackedColorBuffer[index + 1] = (GLubyte)(G *  255.0f);
+                            text->unpackedColorBuffer[index + 2] = (GLubyte)(B *  255.0f);
+                            text->unpackedColorBuffer[index + 3] = 0xFF * (pixel & 1);
                             accum ++;
                         }
                     } break;
