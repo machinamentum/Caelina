@@ -73,23 +73,4 @@ struct vec4 {
     }
 };
 
-
-#include <ostream>
-
-inline std::ostream& operator<<(std::ostream& os, const vec4& v)
-{
-    os << '[';
-    os << v.x << ' ';
-    os << v.y << ' ';
-    os << v.z << ' ';
-    os << v.w;
-    os << ']' << std::endl;
-    return os;
-}
-
-
-
-
-
-
 #endif

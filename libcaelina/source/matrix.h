@@ -2,8 +2,6 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include <ostream>
-#include <iostream>
 #include <math.h>
 
 #include "vector.h"
@@ -279,23 +277,6 @@ public:
     }
     
 };
-
-
-inline std::ostream& operator<<(std::ostream& os, mat4& mat)
-{
-    for(int  i = 0; i < 4; i++) {
-        os << '[';
-        for(int j = 0; j < 4; j++) {
-            os << mat.m[i][j];
-            if(j != 3) {
-                os << ' ';
-            }else {
-                os << ']' << std::endl;
-            }
-        }
-    }
-    return os;
-}
 
 
 
