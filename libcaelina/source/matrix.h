@@ -2,13 +2,11 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include <math.h>
-
+#include <cmath>
 #include "vector.h"
 
-class mat4 {
+struct mat4 {
 
-public:
     float m[4][4];
     mat4() {
         *this = identity();
