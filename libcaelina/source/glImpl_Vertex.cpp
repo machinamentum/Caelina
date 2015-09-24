@@ -80,7 +80,7 @@ void glEnd( void ) {
     if (g_state->displayListCallDepth == 0) {
         g_state->device->render_vertices(projectionMatrix, modelvieMatrix);
     } else {
-        g_state->device->render_vertices_vbo(projectionMatrix, modelvieMatrix, g_state->endVBOCMD.vdata, g_state->endVBOCMD.vdata_units);
+        g_state->device->render_vertices_vbo(projectionMatrix, modelvieMatrix, g_state->endVBOData, g_state->endVBOUnits);
     }
     g_state->vertexBuffer.clear();
 }

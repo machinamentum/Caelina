@@ -330,8 +330,8 @@ struct gfx_state {
     GLenum newDisplayListMode = GL_COMPILE_AND_EXECUTE;
     GLuint currentDisplayList = 0; //for compiling only
     GLuint displayListCallDepth = 0;
-    gfx_command endVBOCMD;
-
+    u8 *endVBOData;
+    GLsizei endVBOUnits;
 };
 
 class gfx_device {

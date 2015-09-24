@@ -37,7 +37,8 @@ static void executeList(gfx_display_list *list) {
                 glBegin(comm.enum1);
                 break;
             case gfx_command::END:
-                g_state->endVBOCMD = comm;
+                g_state->endVBOData = comm.vdata;
+                g_state->endVBOUnits = comm.vdata_units;
                 glEnd();
                 break;
             case gfx_command::BIND_TEXTURE:
