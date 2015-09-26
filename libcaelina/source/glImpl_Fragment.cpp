@@ -135,7 +135,7 @@ void glBlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
     Value |= ((GLuint)(clampf(green, 0.0f, 1.0f) * 255.0f) & 0xFF) << 8;
     Value |= ((GLuint)(clampf(blue, 0.0f, 1.0f) * 255.0f) & 0xFF) << 16;
     Value |= ((GLuint)(clampf(alpha, 0.0f, 1.0f) * 255.0f) & 0xFF) << 24;
-    g_state->blendColor = Value;
+    GPU_SetBlendingColor(Value & 0xFF, (Value >> 8) & 0xFF, (Value >> 16) & 0xFF, (Value >> 24) & 0xFF);
 }
 
 void glAlphaFunc( GLenum func, GLclampf ref ) {

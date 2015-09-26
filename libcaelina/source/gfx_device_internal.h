@@ -291,8 +291,6 @@ struct gfx_state {
     GLenum blendSrcFactor = GL_ONE;
     GLenum blendDstFactor = GL_ZERO;
 
-    GLuint blendColor = 0;
-
     GLenum alphaTestFunc = GL_ALWAYS;
     GLclampf alphaTestRef = 0.0;
 

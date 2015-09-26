@@ -354,8 +354,6 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
                              gl_blendfactor(g_state->blendSrcFactor), gl_blendfactor(g_state->blendDstFactor),
                              gl_blendfactor(g_state->blendSrcFactor), gl_blendfactor(g_state->blendDstFactor)
                              );
-        u32 blendColor = g_state->blendColor;
-        GPU_SetBlendingColor(blendColor & 0xFF, (blendColor >> 8) & 0xFF, (blendColor >> 16) & 0xFF, (blendColor >> 24) & 0xFF);
     }
     else
     {
@@ -365,7 +363,6 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
                              GPU_ONE, GPU_ZERO,
                              GPU_ONE, GPU_ZERO
                              );
-        GPU_SetBlendingColor(0, 0, 0, 0);
     }
 
     u8 alpha_ref = (u8)(g_state->alphaTestRef * 255.0f);
@@ -439,7 +436,6 @@ void safeWaitForEvent(Handle event) {
 }
 
 void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units) {
-    GPUCMD_SetBufferOffset(0);
     setup_state(projection, modelview);
     SetAttributeBuffers(
                         4,
@@ -459,11 +455,11 @@ void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& mod
     GPUCMD_Finalize();
     GPUCMD_FlushAndRun(NULL);
     safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
+    GPUCMD_SetBufferOffset(0);
 }
 
 void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelview) {
-    GPUCMD_SetBufferOffset(0);
-    
+
     setup_state(projection, modelview);
     VBO temp_vbo = VBO(g_state->vertexBuffer.size());
     temp_vbo.set_data(g_state->vertexBuffer);
@@ -486,7 +482,7 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     GPUCMD_FlushAndRun(NULL);
     safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
     linearFree(temp_vbo.data);
-    
+    GPUCMD_SetBufferOffset(0);
 }
 
 void gfx_device_3ds::flush(u8 *fb) {
