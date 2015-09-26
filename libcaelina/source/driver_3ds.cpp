@@ -434,7 +434,7 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
 
 static
 void safeWaitForEvent(Handle event) {
-    Result res = svcWaitSynchronization(event, 1000*1000);
+    Result res = svcWaitSynchronization(event, 1000*1000*100);
     if(!res)svcClearEvent(event);
 }
 
@@ -458,6 +458,7 @@ void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& mod
     GPU_FinishDrawing();
     GPUCMD_Finalize();
     GPUCMD_FlushAndRun(NULL);
+    safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
 }
 
 void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelview) {
@@ -499,4 +500,5 @@ void gfx_device_3ds::flush(u8 *fb) {
 void gfx_device_3ds::clear(u8 r, u8 g, u8 b, u8 a) {
     
     GX_SetMemoryFill(NULL, (u32*)gpuOut, RGBA8(r,g,b,a), (u32*)&gpuOut[0x2EE00], 0x201, (u32*)gpuDOut, 0x00000000, (u32*)&gpuDOut[0x2EE00], 0x201);
+    safeWaitForEvent(gspEvents[GSPEVENT_PSC0]);
 }
