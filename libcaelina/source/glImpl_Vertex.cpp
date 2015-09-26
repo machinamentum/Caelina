@@ -7,12 +7,14 @@ extern gfx_state *g_state;
 extern "C"
 {
 
+#ifndef DISABLE_LISTS
 gfx_display_list *getList(GLuint name);
-
+#endif
 
 void glBegin( GLenum mode ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::BEGIN;
@@ -23,6 +25,7 @@ void glBegin( GLenum mode ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -55,6 +58,7 @@ void glBegin( GLenum mode ) {
 void glEnd( void ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::END;
@@ -69,6 +73,7 @@ void glEnd( void ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
 #ifndef DISABLE_ERRORS
     if(!g_state->withinBeginEndBlock) {
@@ -82,11 +87,17 @@ void glEnd( void ) {
     mat4 projectionMatrix = g_state->projectionMatrixStack[g_state->currentProjectionMatrix];
     mat4 modelvieMatrix = g_state->modelviewMatrixStack[g_state->currentModelviewMatrix];
 
+#ifndef DISABLE_LISTS
     if (g_state->displayListCallDepth == 0) {
+#endif
+
         g_state->device->render_vertices(projectionMatrix, modelvieMatrix);
+
+#ifndef DISABLE_LISTS
     } else {
         g_state->device->render_vertices_vbo(projectionMatrix, modelvieMatrix, g_state->endVBOData, g_state->endVBOUnits);
     }
+#endif
     g_state->vertexBuffer.clear();
 }
 
@@ -105,10 +116,12 @@ void glTexCoord3f( GLfloat s, GLfloat t, GLfloat r ) {
 void glTexCoord4f( GLfloat s, GLfloat t, GLfloat r, GLfloat q ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         getList(g_state->currentDisplayList)->useTex = GL_TRUE;
         getList(g_state->currentDisplayList)->vTex = vec4(s, t, r, q);
     }
+#endif
 
     g_state->currentTextureCoord = vec4(s, t, r, q);
 }
@@ -120,10 +133,12 @@ void glColor3f( GLfloat red, GLfloat green, GLfloat blue ) {
 void glColor4f( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         getList(g_state->currentDisplayList)->useColor = GL_TRUE;
         getList(g_state->currentDisplayList)->vColor = vec4(red, green, blue, alpha);
     }
+#endif
 
     g_state->currentVertexColor = vec4(red, green, blue, alpha);
 }
@@ -160,11 +175,13 @@ void glVertex4f( GLfloat x, GLfloat y, GLfloat z, GLfloat w ) {
 
 void glNormal3f( GLfloat nx, GLfloat ny, GLfloat nz ) {
     CHECK_NULL(g_state);
-    
+
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         getList(g_state->currentDisplayList)->useNormal = GL_TRUE;
         getList(g_state->currentDisplayList)->vNormal = vec4(nx, ny, nz);
     }
+#endif
     
     g_state->currentVertexNormal = vec4(nx, ny, nz, 1.0);
 }

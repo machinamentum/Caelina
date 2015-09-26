@@ -8,11 +8,14 @@ extern gfx_state *g_state;
 extern "C"
 {
 
+#ifndef DISABLE_LISTS
 gfx_display_list *getList(GLuint name);
+#endif
 
 void glStencilFunc( GLenum func, GLint ref, GLuint mask ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::STENCIL_FUNC;
@@ -23,6 +26,7 @@ void glStencilFunc( GLenum func, GLint ref, GLuint mask ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
 #ifndef DISABLE_ERRORS
     switch (func) {
@@ -52,6 +56,7 @@ void glStencilFunc( GLenum func, GLint ref, GLuint mask ) {
 void glStencilMask( GLuint mask ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::STENCIL_MASK;
@@ -60,6 +65,7 @@ void glStencilMask( GLuint mask ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     g_state->stencilMask = mask;
 
@@ -68,6 +74,7 @@ void glStencilMask( GLuint mask ) {
 void glStencilOp( GLenum fail, GLenum zfail, GLenum zpass ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::STENCIL_OP;
@@ -78,6 +85,7 @@ void glStencilOp( GLenum fail, GLenum zfail, GLenum zpass ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 

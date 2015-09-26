@@ -37,6 +37,7 @@ void gfxFlush(unsigned char* fb) {
     g_state->device->flush(fb);
 }
 
+#ifndef DISABLE_LISTS
 gfx_display_list *getList(GLuint name) {
     gfx_display_list *list = NULL;
     for(unsigned int i = 0; i < g_state->displayLists.size(); i++) {
@@ -47,6 +48,7 @@ gfx_display_list *getList(GLuint name) {
     }
     return list;
 }
+#endif
 
 #ifndef DISABLE_ERRORS
 void setError(GLenum error) {
@@ -88,6 +90,7 @@ void glGetIntegerv (GLenum pname, GLint *params) {
 void glClearColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::CLEAR_COLOR;
@@ -99,6 +102,7 @@ void glClearColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) 
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     g_state->clearColor = vec4(clampf(red, 0.0f, 1.0f),
                                clampf(green, 0.0f, 1.0f),
@@ -109,6 +113,7 @@ void glClearColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) 
 void glClear (GLbitfield mask) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::CLEAR;
@@ -117,6 +122,7 @@ void glClear (GLbitfield mask) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
 #ifndef DISABLE_ERRORS
     if(mask & ~(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)) {
@@ -145,6 +151,7 @@ void glClear (GLbitfield mask) {
 void glViewport( GLint x, GLint y, GLsizei width, GLsizei height ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::VIEWPORT;
@@ -156,6 +163,7 @@ void glViewport( GLint x, GLint y, GLsizei width, GLsizei height ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
 #ifndef DISABLE_ERRORS
     if (width < 0 || height < 0) {
@@ -175,6 +183,7 @@ void glViewport( GLint x, GLint y, GLsizei width, GLsizei height ) {
 void glEnable( GLenum cap ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::ENABLE;
@@ -183,6 +192,7 @@ void glEnable( GLenum cap ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END();
 
@@ -237,7 +247,8 @@ void glEnable( GLenum cap ) {
 
 void glDisable( GLenum cap ) {
     CHECK_NULL(g_state);
-    
+
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::DISABLE;
@@ -246,6 +257,7 @@ void glDisable( GLenum cap ) {
     }
     
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
     
     CHECK_WITHIN_BEGIN_END();
     
@@ -302,6 +314,7 @@ void glDisable( GLenum cap ) {
 void glDepthMask( GLboolean flag ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::DEPTH_MASK;
@@ -310,6 +323,7 @@ void glDepthMask( GLboolean flag ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 

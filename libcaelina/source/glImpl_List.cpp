@@ -1,9 +1,8 @@
-
+#ifndef DISABLE_LISTS
 #include <GL/gl.h>
 #include "glImpl.h"
 
 extern gfx_state *g_state;
-
 
 static void executeList(gfx_display_list *list) {
     vec4 color = list->vColor;
@@ -212,3 +211,4 @@ void glCallList( GLuint list ) {
 
 
 }
+#endif

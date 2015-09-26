@@ -17,8 +17,9 @@ static gfx_texture *getTexture(GLuint name) {
 extern "C"
 {
 
+#ifndef DISABLE_LISTS
 gfx_display_list *getList(GLuint name);
-
+#endif
 
 GLboolean glIsTexture( GLuint texture ) {
     CHECK_NULL(g_state, GL_FALSE);
@@ -81,6 +82,7 @@ void glDeleteTextures( GLsizei n, const GLuint *textures) {
 void glBindTexture( GLenum target, GLuint texture ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::BIND_TEXTURE;
@@ -90,6 +92,7 @@ void glBindTexture( GLenum target, GLuint texture ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     gfx_texture *text = NULL;
     for(unsigned int i = 0; i < g_state->textures.size(); i++) {
@@ -131,6 +134,7 @@ void glBindTexture( GLenum target, GLuint texture ) {
 void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::TEX_IMAGE_2D;
@@ -147,6 +151,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
 #ifndef DISABLE_ERRORS
     if(target != GL_TEXTURE_2D) {
@@ -489,6 +494,7 @@ static GPU_TEXTURE_FILTER_PARAM gl_tex_filter(GLenum filt) {
 void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::TEX_PARAM_I;
@@ -499,6 +505,7 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
 #ifndef DISABLE_ERRORS
     switch (target) {

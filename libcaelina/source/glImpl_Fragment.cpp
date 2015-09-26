@@ -7,12 +7,15 @@ extern gfx_state *g_state;
 extern "C"
 {
 
+#ifndef DISABLE_LISTS
 gfx_display_list *getList(GLuint name);
+#endif
 
 
 void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::BLEND_FUNC;
@@ -22,6 +25,7 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END();
 
@@ -83,6 +87,7 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
 void glScissor( GLint x, GLint y, GLsizei width, GLsizei height) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::SCISSOR;
@@ -94,6 +99,7 @@ void glScissor( GLint x, GLint y, GLsizei width, GLsizei height) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
 #ifndef DISABLE_ERRORS
     if (width < 0 || height < 0) {
@@ -108,6 +114,7 @@ void glScissor( GLint x, GLint y, GLsizei width, GLsizei height) {
 void glBlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::BLEND_COLOR;
@@ -119,6 +126,7 @@ void glBlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -133,6 +141,7 @@ void glBlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha )
 void glAlphaFunc( GLenum func, GLclampf ref ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::ALPHA_FUNC;
@@ -142,6 +151,7 @@ void glAlphaFunc( GLenum func, GLclampf ref ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -172,6 +182,7 @@ void glAlphaFunc( GLenum func, GLclampf ref ) {
 void glColorMask( GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::COLOR_MASK;
@@ -183,6 +194,7 @@ void glColorMask( GLboolean red, GLboolean green, GLboolean blue, GLboolean alph
     }
     
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
     
     g_state->colorMaskRed = red != 0;
     g_state->colorMaskGreen = green != 0;

@@ -7,11 +7,14 @@ extern gfx_state *g_state;
 extern "C"
 {
 
+#ifndef DISABLE_LISTS
 gfx_display_list *getList(GLuint name);
+#endif
 
 void glLoadIdentity (void) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::LOAD_IDENTITY;
@@ -19,6 +22,7 @@ void glLoadIdentity (void) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -38,6 +42,7 @@ void glLoadIdentity (void) {
 void glPopMatrix (void) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::POP_MATRIX;
@@ -45,6 +50,7 @@ void glPopMatrix (void) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -87,6 +93,7 @@ void glPopMatrix (void) {
 void glPushMatrix (void) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::PUSH_MATRIX;
@@ -94,10 +101,9 @@ void glPushMatrix (void) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
-
-
 
     switch(g_state->matrixMode) {
         case (GL_MODELVIEW): {
@@ -142,6 +148,7 @@ void glPushMatrix (void) {
 void glMatrixMode (GLenum mode) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::MATRIX_MODE;
@@ -149,9 +156,10 @@ void glMatrixMode (GLenum mode) {
         getList(g_state->currentDisplayList)->commands.push_back(comm);
     }
     
-    CHECK_WITHIN_BEGIN_END(g_state);
-    
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
+
+    CHECK_WITHIN_BEGIN_END(g_state);
 
 #ifndef DISABLE_ERRORS
     switch(mode) {
@@ -174,6 +182,7 @@ void glMatrixMode (GLenum mode) {
 void glRotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::ROTATE;
@@ -185,6 +194,7 @@ void glRotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -206,6 +216,7 @@ void glRotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z ) {
 void glTranslatef (GLfloat x, GLfloat y, GLfloat z) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::TRANSLATE;
@@ -216,6 +227,7 @@ void glTranslatef (GLfloat x, GLfloat y, GLfloat z) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -237,6 +249,7 @@ void glTranslatef (GLfloat x, GLfloat y, GLfloat z) {
 void glScalef( GLfloat x, GLfloat y, GLfloat z ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::SCALE;
@@ -247,6 +260,7 @@ void glScalef( GLfloat x, GLfloat y, GLfloat z ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -268,6 +282,7 @@ void glScalef( GLfloat x, GLfloat y, GLfloat z ) {
 void glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::ORTHO;
@@ -281,6 +296,7 @@ void glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdo
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -309,6 +325,7 @@ void glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdo
 void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::FRUSTUM;
@@ -322,6 +339,7 @@ void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLflo
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 

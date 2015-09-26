@@ -158,6 +158,7 @@ struct gfx_vec4i {
     GLint w;
 };
 
+#ifndef DISABLE_LISTS
 struct gfx_command {
     enum CMD_TYPE {
         PUSH_MATRIX = 0,
@@ -228,6 +229,7 @@ struct gfx_display_list {
     vec4 vNormal;
     std::vector<gfx_command> commands;
 };
+#endif
 
 struct gfx_light {
     vec4 ambient = { 0.0, 0.0, 0.0, 1.0 };
@@ -327,6 +329,7 @@ struct gfx_state {
     GLboolean lightModelTwoSided = GL_FALSE; //TODO implement two-sided lighting
     gfx_material material;
 
+#ifndef DISABLE_LISTS
     sbuffer<gfx_display_list> displayLists;
     GLuint nextDisplayListName = 1;
     GLboolean withinNewEndListBlock = GL_FALSE;
@@ -335,6 +338,7 @@ struct gfx_state {
     GLuint displayListCallDepth = 0;
     u8 *endVBOData;
     GLsizei endVBOUnits;
+#endif
 };
 
 class gfx_device {

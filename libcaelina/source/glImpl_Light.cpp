@@ -7,11 +7,14 @@ extern gfx_state *g_state;
 extern "C"
 {
 
+#ifndef DISABLE_LISTS
 gfx_display_list *getList(GLuint name);
+#endif
 
 void glLightf( GLenum light, GLenum pname, GLfloat param ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::LIGHTF;
@@ -22,6 +25,7 @@ void glLightf( GLenum light, GLenum pname, GLfloat param ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -128,6 +132,7 @@ static int get_light_params_size( GLenum pname ) {
 void glLightfv( GLenum light, GLenum pname, const GLfloat *params ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_LISTS
     if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
         gfx_command comm;
         comm.type = gfx_command::LIGHTFV;
@@ -141,6 +146,7 @@ void glLightfv( GLenum light, GLenum pname, const GLfloat *params ) {
     }
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
