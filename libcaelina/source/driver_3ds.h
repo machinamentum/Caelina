@@ -11,10 +11,10 @@
 /* PICA200 extension state */
 struct gfx_device_3ds_ext {
 
-    GLenum scissorMode = GL_SCISSOR_NORMAL_DMP;
+    GPU_SCISSORMODE scissorMode = GPU_SCISSOR_NORMAL;
 };
 
-class gfx_device_3ds : public gfx_device {
+struct gfx_device_3ds : public gfx_device {
     u32 gpuCmdSize;
     u32 *gpuCmd;
     u32 *gpuDOut;
@@ -23,23 +23,19 @@ class gfx_device_3ds : public gfx_device {
     shaderProgram_s vertex_lighting_shader;
     DVLB_s* dvlb_default;
     DVLB_s* dvlb_lighting;
-
-    void setup_state(const mat4& projection, const mat4& modelview);
-
-public:
     gfx_device_3ds_ext ext_state;
 
     gfx_device_3ds(gfx_state *state, int w, int h);
-    virtual ~gfx_device_3ds();
-    virtual void clear(u8 r, u8 g, u8 b, u8 a);
-    virtual void clearDepth(GLdouble depth);
-    virtual void flush(u8* fb);
-    virtual void render_vertices(const mat4& projection, const mat4& modelview);
-    virtual void render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units);
-    virtual void repack_texture(gfx_texture& tex);
-    virtual void free_texture(gfx_texture& tex);
-    virtual u8 *cache_vertex_list(GLuint *size);
-    
+    ~gfx_device_3ds();
+    void clear(u8 r, u8 g, u8 b, u8 a);
+    void clearDepth(GLdouble depth);
+    void flush(u8* fb);
+    void render_vertices(const mat4& projection, const mat4& modelview);
+    void render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units);
+    void repack_texture(gfx_texture& tex);
+    void free_texture(gfx_texture& tex);
+    u8 *cache_vertex_list(GLuint *size);
+    void setup_state(const mat4& projection, const mat4& modelview);
 };
 
 #endif

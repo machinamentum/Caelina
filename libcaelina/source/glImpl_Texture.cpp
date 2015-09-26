@@ -451,6 +451,26 @@ void glPixelStorei( GLenum pname, GLint param ) {
 }
 
 
+static GPU_TEXTURE_WRAP_PARAM gl_tex_wrap(GLenum wrap) {
+    switch (wrap) {
+        case GL_CLAMP_TO_EDGE: return GPU_CLAMP_TO_EDGE;
+        case GL_MIRRORED_REPEAT: return GPU_MIRRORED_REPEAT;
+        case GL_CLAMP_TO_BORDER: return GPU_CLAMP_TO_BORDER;
+        case GL_REPEAT: return GPU_REPEAT;
+    }
+
+    return GPU_REPEAT;
+}
+
+static GPU_TEXTURE_FILTER_PARAM gl_tex_filter(GLenum filt) {
+    switch (filt) {
+        case GL_LINEAR: return GPU_LINEAR;
+        case GL_NEAREST: return GPU_NEAREST;
+    }
+    
+    return GPU_LINEAR;
+}
+
 void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
     CHECK_NULL(g_state);
 
@@ -496,7 +516,8 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
         case GL_TEXTURE_WRAP_T: {
             switch (param) {
                 case GL_CLAMP_TO_EDGE:
-                    //                case GL_MIRRORED_REPEAT:
+                case GL_CLAMP_TO_BORDER:
+                case GL_MIRRORED_REPEAT:
                 case GL_REPEAT: {
                 } break;
 
@@ -525,16 +546,16 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
 
     switch (pname) {
         case GL_TEXTURE_MIN_FILTER: {
-            text->min_filter = param;
+            text->min_filter = gl_tex_filter(param);
         } break;
         case GL_TEXTURE_MAG_FILTER: {
-            text->mag_filter = param;
+            text->mag_filter = gl_tex_filter(param);
         } break;
         case GL_TEXTURE_WRAP_S: {
-            text->wrap_s = param;
+            text->wrap_s = gl_tex_wrap(param);
         } break;
         case GL_TEXTURE_WRAP_T: {
-            text->wrap_t = param;
+            text->wrap_t = gl_tex_wrap(param);
         } break;
             
     }

@@ -197,34 +197,6 @@ static GPU_Primitive_t gl_primitive(GLenum mode) {
     return GPU_UNKPRIM;
 }
 
-static GPU_TEXTURE_WRAP_PARAM gl_tex_wrap(GLenum wrap) {
-    switch (wrap) {
-        case GL_CLAMP_TO_EDGE: return GPU_CLAMP_TO_EDGE;
-//        case GL_MIRRORED_REPEAT: return GPU_MIRRORED_REPEAT;
-        case GL_REPEAT: return GPU_REPEAT;
-    }
-
-    return GPU_REPEAT;
-}
-
-static GPU_TEXTURE_FILTER_PARAM gl_tex_filter(GLenum filt) {
-    switch (filt) {
-        case GL_LINEAR: return GPU_LINEAR;
-        case GL_NEAREST: return GPU_NEAREST;
-    }
-
-    return GPU_LINEAR;
-}
-
-static GPU_SCISSORMODE glext_scissor_mode(GLenum mode) {
-    switch (mode) {
-        case GL_SCISSOR_NORMAL_DMP: return GPU_SCISSOR_NORMAL;
-        case GL_SCISSOR_INVERT_DMP: return GPU_SCISSOR_INVERT;
-    }
-
-    return GPU_SCISSOR_DISABLE;
-}
-
 static GPU_TESTFUNC gl_writefunc(GLenum func) {
     switch (func) {
         case GL_NEVER: return GPU_NEVER;
@@ -362,7 +334,7 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
         GLint y = g_state->scissorBox.y;
         GLint w = g_state->scissorBox.z;
         GLint h = g_state->scissorBox.w;
-        GPU_SetScissorTest((g_state->enableScissorTest ? glext_scissor_mode(ext_state.scissorMode) : GPU_SCISSOR_DISABLE), x, y, x + w, y + h);
+        GPU_SetScissorTest((g_state->enableScissorTest ? ext_state.scissorMode : GPU_SCISSOR_DISABLE), x, y, x + w, y + h);
     }
 
     GPU_DepthMap(-1.0f, 0.0f);
@@ -444,10 +416,10 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
                            (u32*)osConvertVirtToPhys((u32)text->colorBuffer),
                            text->width,
                            text->height,
-                           GPU_TEXTURE_MAG_FILTER(gl_tex_filter(text->mag_filter)) |
-                           GPU_TEXTURE_MIN_FILTER(gl_tex_filter(text->min_filter)) |
-                           GPU_TEXTURE_WRAP_S(gl_tex_wrap(text->wrap_s)) |
-                           GPU_TEXTURE_WRAP_T(gl_tex_wrap(text->wrap_t)),
+                           GPU_TEXTURE_MIN_FILTER(text->min_filter) |
+                           GPU_TEXTURE_MAG_FILTER(text->mag_filter) |
+                           GPU_TEXTURE_WRAP_S(text->wrap_s) |
+                           GPU_TEXTURE_WRAP_T(text->wrap_t),
                            GPU_RGBA8
                            );
         }
@@ -462,7 +434,7 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
 
 static
 void safeWaitForEvent(Handle event) {
-    Result res = svcWaitSynchronization(event, 1000*1000*1000);
+    Result res = svcWaitSynchronization(event, 1000*1000);
     if(!res)svcClearEvent(event);
 }
 
@@ -486,7 +458,6 @@ void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& mod
     GPU_FinishDrawing();
     GPUCMD_Finalize();
     GPUCMD_FlushAndRun(NULL);
-    safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
 }
 
 void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelview) {
@@ -528,5 +499,4 @@ void gfx_device_3ds::flush(u8 *fb) {
 void gfx_device_3ds::clear(u8 r, u8 g, u8 b, u8 a) {
     
     GX_SetMemoryFill(NULL, (u32*)gpuOut, RGBA8(r,g,b,a), (u32*)&gpuOut[0x2EE00], 0x201, (u32*)gpuDOut, 0x00000000, (u32*)&gpuDOut[0x2EE00], 0x201);
-    safeWaitForEvent(gspEvents[GSPEVENT_PSC0]);
 }

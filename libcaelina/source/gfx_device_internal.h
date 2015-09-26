@@ -1,6 +1,7 @@
 #ifndef GFX_DEVICE_INTERNAL_H
 #define GFX_DEVICE_INTERNAL_H
 
+#include <3ds.h>
 #include <GL/gl.h>
 
 #include "vector.h"
@@ -17,7 +18,7 @@ typedef char s8;
 #endif
 struct gfx_state;
 struct gfx_texture;
-struct gfx_device;
+struct gfx_device_3ds;
 
 template <class T>
 class sbuffer {
@@ -127,10 +128,10 @@ struct gfx_texture {
     GLsizei width;
     GLsizei height;
     GLenum format;
-    GLenum min_filter = GL_NEAREST_MIPMAP_LINEAR;//TODO implement mipmaps
-    GLenum mag_filter = GL_LINEAR;
-    GLenum wrap_s = GL_REPEAT;
-    GLenum wrap_t = GL_REPEAT;
+    GPU_TEXTURE_FILTER_PARAM min_filter = GPU_LINEAR;
+    GPU_TEXTURE_FILTER_PARAM mag_filter = GPU_LINEAR;
+    GPU_TEXTURE_WRAP_PARAM wrap_s = GPU_REPEAT;
+    GPU_TEXTURE_WRAP_PARAM wrap_t = GPU_REPEAT;
 
     GLuint extdata = 0;
 
@@ -253,7 +254,7 @@ struct gfx_material {
 };
 
 struct gfx_state {
-    gfx_device* device;
+    gfx_device_3ds* device;
 
     vec4 clearColor;
 
@@ -353,17 +354,7 @@ public:
             g_state->enableLight[i] = GL_FALSE;
         }
     }
-    
-    virtual ~gfx_device() {};
-    virtual void clear(u8 r, u8 g, u8 b, u8 a) = 0;
-    virtual void clearDepth(GLdouble depth) = 0;
-    virtual void flush(u8 *fb) = 0;
-    virtual void render_vertices(const mat4& projection, const mat4& modelview) = 0;
-    virtual void render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units) = 0;
-    virtual void repack_texture(gfx_texture &tex) = 0;
-    virtual void free_texture(gfx_texture &tex) = 0;
-    virtual u8 *cache_vertex_list(GLuint *size) = 0;
-    
+
     int getWidth() {
         return width;
     }
@@ -372,6 +363,8 @@ public:
         return height;
     }
 };
+
+#include "driver_3ds.h"
 
 
 inline float min(float a, float b) {
