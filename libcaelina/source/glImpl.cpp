@@ -48,6 +48,7 @@ gfx_display_list *getList(GLuint name) {
     return list;
 }
 
+#ifndef DISABLE_ERRORS
 void setError(GLenum error) {
     CHECK_NULL(g_state);
 
@@ -64,6 +65,7 @@ GLenum glGetError (void) {
     g_state->errorFlag = GL_NO_ERROR;
     return error;
 }
+#endif
 
 
 void glGetIntegerv (GLenum pname, GLint *params) {
@@ -116,10 +118,12 @@ void glClear (GLbitfield mask) {
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
 
+#ifndef DISABLE_ERRORS
     if(mask & ~(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)) {
         setError(GL_INVALID_VALUE);
         return;
     }
+#endif
 
     if(mask & GL_COLOR_BUFFER_BIT) {
         u8 r = (u8)(g_state->clearColor.x * 255.0f);
@@ -153,10 +157,12 @@ void glViewport( GLint x, GLint y, GLsizei width, GLsizei height ) {
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
 
+#ifndef DISABLE_ERRORS
     if (width < 0 || height < 0) {
         setError(GL_INVALID_VALUE);
         return;
     }
+#endif
 
     float h = g_state->device->getHeight();
     float w = g_state->device->getWidth();
@@ -219,11 +225,13 @@ void glEnable( GLenum cap ) {
         case (GL_STENCIL_TEST): {
             g_state->enableStencilTest = GL_TRUE;
         } break;
-            
+
+#ifndef DISABLE_ERRORS
         default: {
             setError(GL_INVALID_ENUM);
             return;
         }
+#endif
     }
 }
 
@@ -280,11 +288,12 @@ void glDisable( GLenum cap ) {
         case (GL_STENCIL_TEST): {
             g_state->enableStencilTest = GL_FALSE;
         } break;
-
+#ifndef DISABLE_ERRORS
         default: {
             setError(GL_INVALID_ENUM);
             return;
         }
+#endif
     }
 }
 

@@ -142,6 +142,7 @@ void glNewList( GLuint list, GLenum mode ) {
     CHECK_WITHIN_BEGIN_END(g_state);
     CHECK_WITHIN_NEW_END(g_state);
 
+#ifndef DISABLE_ERRORS
     if (list == 0) {
         setError(GL_INVALID_VALUE);
         return;
@@ -150,10 +151,7 @@ void glNewList( GLuint list, GLenum mode ) {
     switch (mode) {
         case GL_COMPILE:
         case GL_COMPILE_AND_EXECUTE: {
-            g_state->currentDisplayList = list;
-            g_state->newDisplayListMode = mode;
-            g_state->withinNewEndListBlock = GL_TRUE;
-            getList(list)->commands.clear();
+
         } break;
 
         default: {
@@ -161,16 +159,24 @@ void glNewList( GLuint list, GLenum mode ) {
             return;
         }
     }
+#endif
+
+    g_state->currentDisplayList = list;
+    g_state->newDisplayListMode = mode;
+    g_state->withinNewEndListBlock = GL_TRUE;
+    getList(list)->commands.clear();
 }
 
 void glEndList( void ) {
     CHECK_NULL(g_state);
     CHECK_WITHIN_BEGIN_END(g_state);
 
+#ifndef DISABLE_ERRORS
     if (!g_state->withinNewEndListBlock) {
         setError(GL_INVALID_OPERATION);
         return;
     }
+#endif
 
     //TODO check for out of memory and set error
 

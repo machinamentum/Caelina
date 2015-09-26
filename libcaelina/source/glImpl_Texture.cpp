@@ -38,10 +38,12 @@ GLboolean glIsTexture( GLuint texture ) {
 void glGenTextures( GLsizei n, GLuint *textures ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_ERRORS
     if(n < 0) {
         setError(GL_INVALID_VALUE);
         return;
     }
+#endif
 
     for(GLsizei i = 0; i < n; ++i) {
         GLuint tname = rand() + 1;
@@ -57,10 +59,12 @@ void glGenTextures( GLsizei n, GLuint *textures ) {
 void glDeleteTextures( GLsizei n, const GLuint *textures) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_ERRORS
     if (n < 0) {
         setError(GL_INVALID_VALUE);
         return;
     }
+#endif
 
     for (GLsizei i = 0; i < n; ++i) {
         gfx_texture *text = getTexture(textures[i]);
@@ -101,22 +105,25 @@ void glBindTexture( GLenum target, GLuint texture ) {
         glBindTexture(target, texture);
         return;
     }
-    
+
+#ifndef DISABLE_ERRORS
     if(target != GL_TEXTURE_2D && target != GL_TEXTURE_CUBE_MAP) {
         setError(GL_INVALID_ENUM);
         return;
     }
-    
-    
+#endif
     
     if(text->target == 0 ) {
         text->target = target;
         
-    } else if(text->target != target) {
+    }
+#ifndef DISABLE_ERRORS
+    else if(text->target != target) {
         setError(GL_INVALID_OPERATION);
         return;
     }
-    
+#endif
+
     g_state->currentBoundTexture = text->tname;
 }
 
@@ -141,6 +148,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
 
+#ifndef DISABLE_ERRORS
     if(target != GL_TEXTURE_2D) {
         setError(GL_INVALID_ENUM);
         return;
@@ -229,6 +237,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
         setError(GL_INVALID_OPERATION);
         return;
     }
+#endif
 
     gfx_texture* text = NULL;
     for(unsigned int i = 0; i < g_state->textures.size(); i++) {
@@ -286,13 +295,13 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
                             accum++;
                         }
                     } break;
-
+#ifndef DISABLE_ERRORS
                     default: {
 
                         setError(GL_INVALID_VALUE);
                         return;
                     } break;
-
+#endif
                 }
             }
 
@@ -308,7 +317,7 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
     CHECK_NULL(g_state);
 
     //TODO implement algorithm for updating a tiled image
-
+#ifndef DISABLE_ERRORS
     if(target != GL_TEXTURE_2D) {
         setError(GL_INVALID_ENUM);
         return;
@@ -356,6 +365,7 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
         setError(GL_INVALID_ENUM);
         return;
     }
+#endif
 
     gfx_texture* text = NULL;
     for(unsigned int i = 0; i < g_state->textures.size(); i++) {
@@ -365,10 +375,12 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
         }
     }
 
+#ifndef DISABLE_ERRORS
     if (!text) {
         setError(GL_INVALID_OPERATION);
         return;
     }
+#endif
 
     if(pixels) {
         unsigned int accum = 0;
@@ -428,12 +440,14 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
 
 void glPixelStorei( GLenum pname, GLint param ) {
     CHECK_NULL(g_state);
-    
+
+#ifndef DISABLE_ERRORS
     if(param != 1 && param != 2 && param != 4 && param != 8) {
         setError(GL_INVALID_VALUE);
         return;
     }
-    
+#endif
+
     switch(pname) {
         case (GL_PACK_ALIGNMENT): {
             g_state->packAlignment = param;
@@ -441,11 +455,12 @@ void glPixelStorei( GLenum pname, GLint param ) {
         case (GL_UNPACK_ALIGNMENT): {
             g_state->unpackAlignment = param;
         } break;
-            
+#ifndef DISABLE_ERRORS
         default: {
             setError(GL_INVALID_ENUM);
             return;
         }
+#endif
     }
     
 }
@@ -485,6 +500,7 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
 
+#ifndef DISABLE_ERRORS
     switch (target) {
         case GL_TEXTURE_2D:
         case GL_TEXTURE_CUBE_MAP: {
@@ -533,6 +549,7 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
             return;
         }
     }
+#endif
 
     gfx_texture* text = NULL;
     for(unsigned int i = 0; i < g_state->textures.size(); i++) {

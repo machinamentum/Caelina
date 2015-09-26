@@ -25,6 +25,7 @@ void glLightf( GLenum light, GLenum pname, GLfloat param ) {
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
+#ifndef DISABLE_ERRORS
     switch (light) {
         case GL_LIGHT0:
         case GL_LIGHT1:
@@ -41,53 +42,66 @@ void glLightf( GLenum light, GLenum pname, GLfloat param ) {
             setError(GL_INVALID_ENUM);
         } return;
     }
+#endif
 
     GLuint light_index = light - GL_LIGHT0;
 
     switch (pname) {
         case GL_SPOT_EXPONENT: {
+#ifndef DISABLE_ERRORS
             if (param < 0.0 || param > 128.0) {
                 setError(GL_INVALID_VALUE);
                 return;
             }
+#endif
             g_state->lights[light_index].spotlightExpo = param;
         } break;
 
         case GL_SPOT_CUTOFF: {
+#ifndef DISABLE_ERRORS
             if ((param < 0.0 || param > 90.0) && param != 180.0) {
                 setError(GL_INVALID_VALUE);
                 return;
             }
+#endif
             g_state->lights[light_index].spotlightCutoff = param;
         } break;
 
         case GL_CONSTANT_ATTENUATION: {
+#ifndef DISABLE_ERRORS
             if (param < 0.0) {
                 setError(GL_INVALID_VALUE);
                 return;
             }
+#endif
             g_state->lights[light_index].constantAttenuation = param;
         } break;
 
         case GL_LINEAR_ATTENUATION: {
+#ifndef DISABLE_ERRORS
             if (param < 0.0) {
                 setError(GL_INVALID_VALUE);
                 return;
             }
+#endif
             g_state->lights[light_index].linearAttenuation = param;
         } break;
 
         case GL_QUADRATIC_ATTENUATION: {
+#ifndef DISABLE_ERRORS
             if (param < 0.0) {
                 setError(GL_INVALID_VALUE);
                 return;
             }
+#endif
             g_state->lights[light_index].quadraticAttenuation = param;
         } break;
 
+#ifndef DISABLE_ERRORS
         default: {
             setError(GL_INVALID_ENUM);
         } return;
+#endif
     }
 
 }
@@ -130,6 +144,7 @@ void glLightfv( GLenum light, GLenum pname, const GLfloat *params ) {
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
+#ifndef DISABLE_ERRORS
     switch (light) {
         case GL_LIGHT0:
         case GL_LIGHT1:
@@ -146,47 +161,58 @@ void glLightfv( GLenum light, GLenum pname, const GLfloat *params ) {
             setError(GL_INVALID_ENUM);
         } return;
     }
+#endif
 
     GLuint light_index = light - GL_LIGHT0;
 
     switch (pname) {
         case GL_SPOT_EXPONENT: {
+#ifndef DISABLE_ERRORS
             if (params[0] < 0.0 || params[0] > 128.0) {
                 setError(GL_INVALID_VALUE);
                 return;
             }
+#endif
             g_state->lights[light_index].spotlightExpo = params[0];
         } break;
 
         case GL_SPOT_CUTOFF: {
+#ifndef DISABLE_ERRORS
             if ((params[0] < 0.0 || params[0] > 90.0) && params[0] != 180.0) {
                 setError(GL_INVALID_VALUE);
                 return;
             }
+#endif
             g_state->lights[light_index].spotlightCutoff = params[0];
         } break;
 
         case GL_CONSTANT_ATTENUATION: {
+#ifndef DISABLE_ERRORS
             if (params[0] < 0.0) {
                 setError(GL_INVALID_VALUE);
                 return;
             }
+#endif
             g_state->lights[light_index].constantAttenuation = params[0];
         } break;
 
         case GL_LINEAR_ATTENUATION: {
+#ifndef DISABLE_ERRORS
             if (params[0] < 0.0) {
                 setError(GL_INVALID_VALUE);
                 return;
             }
+#endif
             g_state->lights[light_index].linearAttenuation = params[0];
         } break;
 
         case GL_QUADRATIC_ATTENUATION: {
+#ifndef DISABLE_ERRORS
             if (params[0] < 0.0) {
                 setError(GL_INVALID_VALUE);
                 return;
             }
+#endif
             g_state->lights[light_index].quadraticAttenuation = params[0];
         } break;
 
@@ -213,10 +239,11 @@ void glLightfv( GLenum light, GLenum pname, const GLfloat *params ) {
             upper3x3[8 + 3] = 0.0;
             g_state->lights[0].spotlightDirection = upper3x3 * vec4(params[0], params[1], params[2], 0.0);
         }
-            
+#ifndef DISABLE_ERRORS
         default: {
             setError(GL_INVALID_ENUM);
         } return;
+#endif
     }
 }
 

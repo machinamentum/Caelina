@@ -13,6 +13,7 @@
 #define CHECK_NULL(x, ...) \
     if(!x) return __VA_ARGS__;
 
+#ifndef DISABLE_ERRORS
 #define CHECK_WITHIN_BEGIN_END(x, ...) \
     if(g_state->withinBeginEndBlock) { \
         setError(GL_INVALID_OPERATION); \
@@ -25,17 +26,24 @@
         return __VA_ARGS__; \
     }
 
+#else
+
+#define CHECK_WITHIN_BEGIN_END(x, ...) ((void)0)
+#define CHECK_WITHIN_NEW_END(x, ...) ((void)0)
+#endif
+
 #define CHECK_COMPILE_AND_EXECUTE(x, ...) \
     if(g_state->newDisplayListMode == GL_COMPILE) { \
         return __VA_ARGS__; \
     }
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#ifndef DISABLE_ERRORS
     void setError(GLenum error);
+#endif
 
 #ifdef __cplusplus
 }

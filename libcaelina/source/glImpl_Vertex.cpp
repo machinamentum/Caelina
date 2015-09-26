@@ -26,6 +26,7 @@ void glBegin( GLenum mode ) {
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
+#ifndef DISABLE_ERRORS
     switch(mode) {
         case (GL_POINTS):
         case (GL_LINES):
@@ -38,14 +39,16 @@ void glBegin( GLenum mode ) {
         case (GL_QUAD_STRIP):
         case (GL_POLYGON):
         {
-            g_state->vertexDrawMode = mode;
+
         } break;
 
         default: {
             setError(GL_INVALID_ENUM);
         } break;
     }
+#endif
 
+    g_state->vertexDrawMode = mode;
     g_state->withinBeginEndBlock = GL_TRUE;
 }
 
@@ -67,10 +70,12 @@ void glEnd( void ) {
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
 
+#ifndef DISABLE_ERRORS
     if(!g_state->withinBeginEndBlock) {
         setError(GL_INVALID_OPERATION);
         return;
     }
+#endif
 
     g_state->withinBeginEndBlock = GL_FALSE;
 

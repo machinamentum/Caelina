@@ -269,7 +269,9 @@ struct gfx_state {
 
     GLenum matrixMode = GL_MODELVIEW;
 
+#ifndef DISABLE_ERRORS
     GLenum errorFlag;
+#endif
 
     GLboolean withinBeginEndBlock = GL_FALSE;
 

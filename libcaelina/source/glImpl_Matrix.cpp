@@ -50,28 +50,33 @@ void glPopMatrix (void) {
 
     switch(g_state->matrixMode) {
         case (GL_MODELVIEW): {
+#ifndef DISABLE_ERRORS
             if(g_state->currentModelviewMatrix - 1 < 0) {
                 setError(GL_STACK_UNDERFLOW);
                 return;
             }
-
+#endif
             g_state->currentModelviewMatrix--;
         } break;
 
         case (GL_PROJECTION): {
+#ifndef DISABLE_ERRORS
             if(g_state->currentProjectionMatrix - 1 < 0) {
                 setError(GL_STACK_UNDERFLOW);
                 return;
             }
+#endif
 
             g_state->currentProjectionMatrix--;
         } break;
 
         case (GL_TEXTURE): {
+#ifndef DISABLE_ERRORS
             if(g_state->currentTextureMatrix - 1 < 0) {
                 setError(GL_STACK_UNDERFLOW);
                 return;
             }
+#endif
 
             g_state->currentTextureMatrix--;
         } break;
@@ -96,30 +101,36 @@ void glPushMatrix (void) {
 
     switch(g_state->matrixMode) {
         case (GL_MODELVIEW): {
+#ifndef DISABLE_ERRORS
             if(g_state->currentModelviewMatrix + 1 >= IMPL_MAX_MODELVIEW_STACK_DEPTH) {
                 setError(GL_STACK_OVERFLOW);
                 return;
             }
+#endif
 
             g_state->modelviewMatrixStack[g_state->currentModelviewMatrix + 1] = mat4(g_state->modelviewMatrixStack[g_state->currentModelviewMatrix]);
             g_state->currentModelviewMatrix++;
         } break;
 
         case (GL_PROJECTION): {
+#ifndef DISABLE_ERRORS
             if(g_state->currentProjectionMatrix + 1 >= IMPL_MAX_PROJECTION_STACK_DEPTH) {
                 setError(GL_STACK_OVERFLOW);
                 return;
             }
+#endif
 
             g_state->projectionMatrixStack[g_state->currentProjectionMatrix + 1] = mat4(g_state->projectionMatrixStack[g_state->currentProjectionMatrix]);
             g_state->currentProjectionMatrix++;
         } break;
 
         case (GL_TEXTURE): {
+#ifndef DISABLE_ERRORS
             if(g_state->currentTextureMatrix + 1 >= IMPL_MAX_TEXTURE_STACK_DEPTH) {
                 setError(GL_STACK_OVERFLOW);
                 return;
             }
+#endif
 
             g_state->textureMatrixStack[g_state->currentTextureMatrix + 1] = mat4(g_state->textureMatrixStack[g_state->currentTextureMatrix]);
             g_state->currentTextureMatrix++;
@@ -141,20 +152,23 @@ void glMatrixMode (GLenum mode) {
     CHECK_WITHIN_BEGIN_END(g_state);
     
     CHECK_COMPILE_AND_EXECUTE(g_state);
-    
+
+#ifndef DISABLE_ERRORS
     switch(mode) {
         case (GL_MODELVIEW):
         case (GL_PROJECTION):
         case (GL_TEXTURE):
         {
-            g_state->matrixMode = mode;
+
         } break;
             
         default: {
             setError(GL_INVALID_ENUM);
         } break;
     }
-    
+#endif
+
+    g_state->matrixMode = mode;
 }
 
 void glRotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z ) {
@@ -270,10 +284,12 @@ void glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdo
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
+#ifndef DISABLE_ERRORS
     if(left == right || top == bottom || near_val == far_val) {
         setError(GL_INVALID_VALUE);
         return;
     }
+#endif
 
     mat4 ortho = mat4::ortho(left, right, bottom, top, near_val, far_val);
 
@@ -309,10 +325,12 @@ void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLflo
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
+#ifndef DISABLE_ERRORS
     if(left == right || top == bottom || zNear == zFar || zNear < 0.0f || zFar < 0.0f) {
         setError(GL_INVALID_VALUE);
         return;
     }
+#endif
     
     mat4 frustum = mat4::frustum(left, right, bottom, top, zNear, zFar);
     

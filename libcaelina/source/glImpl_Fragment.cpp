@@ -25,6 +25,7 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
 
     CHECK_WITHIN_BEGIN_END();
 
+#ifndef DISABLE_ERRORS
     switch (sfactor) {
         case (GL_ZERO):
         case (GL_ONE):
@@ -41,7 +42,7 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
         case (GL_CONSTANT_ALPHA):
         case (GL_ONE_MINUS_CONSTANT_ALPHA):
         case (GL_SRC_ALPHA_SATURATE): {
-            g_state->blendSrcFactor = sfactor;
+
         } break;
 
         default: {
@@ -65,13 +66,17 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
         case (GL_CONSTANT_ALPHA):
         case (GL_ONE_MINUS_CONSTANT_ALPHA):
         {
-            g_state->blendDstFactor = dfactor;
+
         } break;
             
         default: {
             setError(GL_INVALID_ENUM);
         } return;
     }
+#endif
+
+    g_state->blendSrcFactor = sfactor;
+    g_state->blendDstFactor = dfactor;
 }
 
 
@@ -90,11 +95,12 @@ void glScissor( GLint x, GLint y, GLsizei width, GLsizei height) {
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
 
-
+#ifndef DISABLE_ERRORS
     if (width < 0 || height < 0) {
         setError(GL_INVALID_VALUE);
         return;
     }
+#endif
     
     g_state->scissorBox = {x, y, width, height};
 }
@@ -139,6 +145,7 @@ void glAlphaFunc( GLenum func, GLclampf ref ) {
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
+#ifndef DISABLE_ERRORS
     switch (func) {
         case GL_NEVER:
         case GL_LESS:
@@ -148,8 +155,7 @@ void glAlphaFunc( GLenum func, GLclampf ref ) {
         case GL_NOTEQUAL:
         case GL_GEQUAL:
         case GL_ALWAYS: {
-            g_state->alphaTestFunc = func;
-            g_state->alphaTestRef = clampf(ref, 0.0, 1.0);
+
         } break;
 
         default: {
@@ -157,6 +163,10 @@ void glAlphaFunc( GLenum func, GLclampf ref ) {
             return;
         }
     }
+#endif
+
+    g_state->alphaTestFunc = func;
+    g_state->alphaTestRef = clampf(ref, 0.0, 1.0);
 }
 
 void glColorMask( GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha ) {

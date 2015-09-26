@@ -17,10 +17,11 @@ static GPU_SCISSORMODE glext_scissor_mode(GLenum mode) {
 GLAPI void APIENTRY glScissorMode( GLenum mode ) {
     CHECK_NULL(g_state);
 
+#ifndef DISABLE_ERRORS
     switch (mode) {
         case GL_SCISSOR_NORMAL_DMP:
         case GL_SCISSOR_INVERT_DMP: {
-            g_state->device->ext_state.scissorMode = glext_scissor_mode(mode);
+
         } break;
 
         default: {
@@ -28,4 +29,7 @@ GLAPI void APIENTRY glScissorMode( GLenum mode ) {
             return;
         } break;
     }
+#endif
+
+    g_state->device->ext_state.scissorMode = glext_scissor_mode(mode);
 }

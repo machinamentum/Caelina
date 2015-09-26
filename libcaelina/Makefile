@@ -30,7 +30,7 @@ VERSION		:=	$(GIT_BRANCH)-$(GIT_COMMIT)
 #---------------------------------------------------------------------------------
 ARCH	:=	-march=armv6k -mtune=mpcore -mfloat-abi=hard
 
-CFLAGS	:= -Wall -O2 \
+CFLAGS	+= -Wall -O2 \
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
@@ -101,7 +101,7 @@ lib:
 
 $(BUILD): lib
 	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile CFLAGS="$(CFLAGS)"
 
 #---------------------------------------------------------------------------------
 clean:

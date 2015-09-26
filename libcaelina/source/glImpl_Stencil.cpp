@@ -24,6 +24,7 @@ void glStencilFunc( GLenum func, GLint ref, GLuint mask ) {
 
     CHECK_COMPILE_AND_EXECUTE(g_state);
 
+#ifndef DISABLE_ERRORS
     switch (func) {
         case GL_NEVER:
         case GL_LESS:
@@ -33,9 +34,7 @@ void glStencilFunc( GLenum func, GLint ref, GLuint mask ) {
         case GL_NOTEQUAL:
         case GL_GEQUAL:
         case GL_ALWAYS: {
-            g_state->stencilFunc = func;
-            g_state->stencilRef = clampi(ref, 0, (2 << 8) - 1); // TODO get number of actual stencil bits
-            g_state->stencilFuncMask = mask;
+
         } break;
 
         default: {
@@ -43,7 +42,11 @@ void glStencilFunc( GLenum func, GLint ref, GLuint mask ) {
             return;
         }
     }
+#endif
 
+    g_state->stencilFunc = func;
+    g_state->stencilRef = clampi(ref, 0, (2 << 8) - 1); // TODO get number of actual stencil bits
+    g_state->stencilFuncMask = mask;
 }
 
 void glStencilMask( GLuint mask ) {
@@ -78,6 +81,7 @@ void glStencilOp( GLenum fail, GLenum zfail, GLenum zpass ) {
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
+#ifndef DISABLE_ERRORS
     switch (fail) {
         case GL_KEEP:
         case GL_ZERO:
@@ -121,15 +125,18 @@ void glStencilOp( GLenum fail, GLenum zfail, GLenum zpass ) {
         case GL_DECR:
         case GL_DECR_WRAP:
         case GL_INVERT: {
-            g_state->stencilOpSFail = fail;
-            g_state->stencilOpZFail = zfail;
-            g_state->stencilOpZPass = zpass;
+
         } break;
             
         default: {
             setError(GL_INVALID_ENUM);
         }
     }
+#endif
+
+    g_state->stencilOpSFail = fail;
+    g_state->stencilOpZFail = zfail;
+    g_state->stencilOpZPass = zpass;
 }
 
 }
