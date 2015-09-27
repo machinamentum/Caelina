@@ -288,8 +288,8 @@ struct gfx_state {
     GLint packAlignment = 4;
     GLint unpackAlignment = 4;
 
-    GLenum blendSrcFactor = GL_ONE;
-    GLenum blendDstFactor = GL_ZERO;
+    GPU_BLENDEQUATION blendEquationColor = GPU_BLEND_ADD;
+    GPU_BLENDEQUATION blendEquationAlpha = GPU_BLEND_ADD;
 
     GLenum alphaTestFunc = GL_ALWAYS;
     GLclampf alphaTestRef = 0.0;
@@ -312,14 +312,10 @@ struct gfx_state {
 
     GLboolean enableTexture2D = GL_FALSE;
     GLboolean enableDepthTest = GL_FALSE;
-    GLboolean enableBlend = GL_FALSE;
-    GLboolean enableScissorTest = GL_FALSE;
     GLboolean enableLighting = GL_FALSE;
     GLboolean enableLight[IMPL_MAX_LIGHTS];
     GLboolean enableAlphaTest = GL_FALSE;
     GLboolean enableStencilTest = GL_FALSE;
-
-    gfx_vec4i scissorBox;
 
     gfx_light lights[IMPL_MAX_LIGHTS];
     vec4 lightModelAmbient = { 0.2, 0.2, 0.2, 1.0};
@@ -348,7 +344,6 @@ public:
     
     gfx_device(gfx_state *state, int w, int h) {
         g_state = state;
-        g_state->scissorBox = {0, 0, w, h};
         width = w;
         height = h;
         g_state->lights[0].diffuse = { 1.0, 1.0, 1.0, 1.0 };

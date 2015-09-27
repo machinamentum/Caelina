@@ -1,3 +1,4 @@
+#include <3ds.h>
 #include <GL/gl.h>
 
 #include "glImpl.h"
@@ -206,11 +207,11 @@ void glEnable( GLenum cap ) {
         } break;
 
         case (GL_BLEND): {
-            g_state->enableBlend = GL_TRUE;
+            GPUCMD_AddWrite(GPUREG_COLOROUTPUT_CONFIG, 0x00E40100);
         } break;
 
         case (GL_SCISSOR_TEST): {
-            g_state->enableScissorTest = GL_TRUE;
+            GPUCMD_AddWrite(	GPUREG_SCISSORTEST_MODE, GPU_SCISSOR_NORMAL);
         } break;
             
         case (GL_LIGHTING): {
@@ -271,11 +272,11 @@ void glDisable( GLenum cap ) {
         } break;
             
         case (GL_BLEND): {
-            g_state->enableBlend = GL_FALSE;
+             GPUCMD_AddWrite(GPUREG_COLOROUTPUT_CONFIG, 0x00E40000);
         } break;
             
         case (GL_SCISSOR_TEST): {
-            g_state->enableScissorTest = GL_FALSE;
+            GPUCMD_AddWrite(	GPUREG_SCISSORTEST_MODE, GPU_SCISSOR_DISABLE);
         } break;
             
         case (GL_LIGHTING): {

@@ -10,12 +10,6 @@
     GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
     GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_X))
 
-
-#undef GPUCMD_AddSingleParam
-static void GPUCMD_AddSingleParam(u32 header, u32 param) {
-    GPUCMD_Add(header, &param, 1);
-}
-
 static
 void SetAttributeBuffers(u8 totalAttributes, u32* baseAddress,
                          u64 attributeFormats, u16 attributeMask,
@@ -101,6 +95,19 @@ gfx_device_3ds::gfx_device_3ds(gfx_state *state, int w, int h) : gfx_device(stat
     dvlb_lighting = DVLB_ParseFile((u32*)vertex_lighting_3ds_vsh_shbin, vertex_lighting_3ds_vsh_shbin_size);
     shaderProgramInit(&vertex_lighting_shader);
     shaderProgramSetVsh(&vertex_lighting_shader, &dvlb_lighting->DVLE[0]);
+
+    GPU_DepthMap(-1.0f, 0.0f);
+    GPU_SetScissorTest(GPU_SCISSOR_NORMAL, 0, 0, w, h);
+    GPU_SetFaceCulling(GPU_CULL_NONE);
+    GPU_SetViewport((u32 *)osConvertVirtToPhys((u32)gpuDOut),
+                    (u32 *)osConvertVirtToPhys((u32)gpuOut),
+                    0, 0, w, h);
+    GPU_SetAlphaBlending(
+                         GPU_BLEND_ADD,
+                         GPU_BLEND_ADD,
+                         GPU_ONE, GPU_ZERO,
+                         GPU_ONE, GPU_ZERO
+                         );
 }
 
 gfx_device_3ds::~gfx_device_3ds() {
@@ -162,28 +169,6 @@ void gfx_device_3ds::free_texture(gfx_texture &tex) {
     } else {
         linearFree(tex.colorBuffer);
     }
-}
-
-static GPU_BLENDFACTOR gl_blendfactor(GLenum factor) {
-    switch(factor) {
-        case GL_ZERO: return GPU_ZERO;
-        case GL_ONE:  return GPU_ONE;
-        case GL_SRC_COLOR: return GPU_SRC_COLOR;
-        case GL_ONE_MINUS_SRC_COLOR: return GPU_ONE_MINUS_SRC_COLOR;
-        case GL_DST_COLOR: return GPU_DST_COLOR;
-        case GL_ONE_MINUS_DST_COLOR: return GPU_ONE_MINUS_DST_COLOR;
-        case GL_SRC_ALPHA: return GPU_SRC_ALPHA;
-        case GL_ONE_MINUS_SRC_ALPHA: return GPU_ONE_MINUS_SRC_ALPHA;
-        case GL_DST_ALPHA: return GPU_DST_ALPHA;
-        case GL_ONE_MINUS_DST_ALPHA: return GPU_ONE_MINUS_DST_ALPHA;
-        case GL_CONSTANT_COLOR: return GPU_CONSTANT_COLOR;
-        case GL_ONE_MINUS_CONSTANT_COLOR: return GPU_ONE_MINUS_CONSTANT_COLOR;
-        case GL_CONSTANT_ALPHA: return GPU_CONSTANT_ALPHA;
-        case GL_ONE_MINUS_CONSTANT_ALPHA: return GPU_ONE_MINUS_CONSTANT_ALPHA;
-        case GL_SRC_ALPHA_SATURATE: return GPU_SRC_ALPHA_SATURATE;
-    }
-
-    return GPU_ONE;
 }
 
 static GPU_Primitive_t gl_primitive(GLenum mode) {
@@ -326,19 +311,6 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
     }
 
 
-    GPU_SetViewport((u32 *)osConvertVirtToPhys((u32)gpuDOut),
-                    (u32 *)osConvertVirtToPhys((u32)gpuOut),
-                    0, 0, width, height);
-    {
-        GLint x = g_state->scissorBox.x;
-        GLint y = g_state->scissorBox.y;
-        GLint w = g_state->scissorBox.z;
-        GLint h = g_state->scissorBox.w;
-        GPU_SetScissorTest((g_state->enableScissorTest ? ext_state.scissorMode : GPU_SCISSOR_DISABLE), x, y, x + w, y + h);
-    }
-
-    GPU_DepthMap(-1.0f, 0.0f);
-    GPU_SetFaceCulling(GPU_CULL_NONE);
     u8 stencil_ref = g_state->stencilRef;
     GPU_SetStencilTest(g_state->enableStencilTest, gl_writefunc(g_state->stencilFunc), stencil_ref, g_state->stencilFuncMask, g_state->stencilMask);
     GPU_SetStencilOp(gl_stencilop(g_state->stencilOpSFail), gl_stencilop(g_state->stencilOpZFail), gl_stencilop(g_state->stencilOpZPass));
@@ -346,24 +318,6 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
     GPU_SetDepthTestAndWriteMask(g_state->enableDepthTest, GPU_GEQUAL, write_mask);
     GPUCMD_AddMaskedWrite(GPUREG_0062, 0x1, 0);
     GPUCMD_AddWrite(GPUREG_0118, 0);
-
-    if (g_state->enableBlend) {
-        GPU_SetAlphaBlending(
-                             GPU_BLEND_ADD,
-                             GPU_BLEND_ADD,
-                             gl_blendfactor(g_state->blendSrcFactor), gl_blendfactor(g_state->blendDstFactor),
-                             gl_blendfactor(g_state->blendSrcFactor), gl_blendfactor(g_state->blendDstFactor)
-                             );
-    }
-    else
-    {
-        GPU_SetAlphaBlending(
-                             GPU_BLEND_ADD,
-                             GPU_BLEND_ADD,
-                             GPU_ONE, GPU_ZERO,
-                             GPU_ONE, GPU_ZERO
-                             );
-    }
 
     u8 alpha_ref = (u8)(g_state->alphaTestRef * 255.0f);
     GPU_SetAlphaTest(g_state->enableAlphaTest, gl_writefunc(g_state->alphaTestFunc), alpha_ref);

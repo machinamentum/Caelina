@@ -11,6 +11,27 @@ extern "C"
 gfx_display_list *getList(GLuint name);
 #endif
 
+static GPU_BLENDFACTOR gl_blendfactor(GLenum factor) {
+    switch(factor) {
+        case GL_ZERO: return GPU_ZERO;
+        case GL_ONE:  return GPU_ONE;
+        case GL_SRC_COLOR: return GPU_SRC_COLOR;
+        case GL_ONE_MINUS_SRC_COLOR: return GPU_ONE_MINUS_SRC_COLOR;
+        case GL_DST_COLOR: return GPU_DST_COLOR;
+        case GL_ONE_MINUS_DST_COLOR: return GPU_ONE_MINUS_DST_COLOR;
+        case GL_SRC_ALPHA: return GPU_SRC_ALPHA;
+        case GL_ONE_MINUS_SRC_ALPHA: return GPU_ONE_MINUS_SRC_ALPHA;
+        case GL_DST_ALPHA: return GPU_DST_ALPHA;
+        case GL_ONE_MINUS_DST_ALPHA: return GPU_ONE_MINUS_DST_ALPHA;
+        case GL_CONSTANT_COLOR: return GPU_CONSTANT_COLOR;
+        case GL_ONE_MINUS_CONSTANT_COLOR: return GPU_ONE_MINUS_CONSTANT_COLOR;
+        case GL_CONSTANT_ALPHA: return GPU_CONSTANT_ALPHA;
+        case GL_ONE_MINUS_CONSTANT_ALPHA: return GPU_ONE_MINUS_CONSTANT_ALPHA;
+        case GL_SRC_ALPHA_SATURATE: return GPU_SRC_ALPHA_SATURATE;
+    }
+    
+    return GPU_ONE;
+}
 
 void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
     CHECK_NULL(g_state);
@@ -79,8 +100,12 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
     }
 #endif
 
-    g_state->blendSrcFactor = sfactor;
-    g_state->blendDstFactor = dfactor;
+    GPU_SetAlphaBlending(
+                         g_state->blendEquationColor,
+                         g_state->blendEquationAlpha,
+                         gl_blendfactor(sfactor), gl_blendfactor(dfactor),
+                         gl_blendfactor(sfactor), gl_blendfactor(dfactor)
+                         );
 }
 
 
@@ -107,8 +132,11 @@ void glScissor( GLint x, GLint y, GLsizei width, GLsizei height) {
         return;
     }
 #endif
-    
-    g_state->scissorBox = {x, y, width, height};
+
+    u32 param[2];
+    param[0] = (y << 16) | (x & 0xFFFF);
+    param[1] = ((height - 1) << 16) | ((width - 1) & 0xFFFF);
+    GPUCMD_AddIncrementalWrites(GPUREG_SCISSORTEST_POS, param, 2);
 }
 
 void glBlendColor( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha ) {

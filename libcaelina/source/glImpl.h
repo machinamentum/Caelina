@@ -49,5 +49,11 @@ extern "C" {
 }
 #endif
 
+#include <3ds.h>
+
+#undef GPUCMD_AddSingleParam
+inline void GPUCMD_AddSingleParam(u32 header, u32 param) {
+    GPUCMD_Add(header, &param, 1);
+}
 
 #endif
