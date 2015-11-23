@@ -37,7 +37,7 @@ void DrawGLScene() {
 int main()
 {
     gfxInitDefault();
-    hidInit(NULL);
+    hidInit();
 
     void* device = gfxCreateDevice(240, 400);
     gfxMakeCurrent(device);
@@ -73,7 +73,7 @@ int main()
 
         DrawGLScene();
 
-        gfxFlush(gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL));
+        gfxFlush(gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL), 240, 400);
         gfxFlushBuffers();
         gfxSwapBuffersGpu();
         gspWaitForVBlank();
