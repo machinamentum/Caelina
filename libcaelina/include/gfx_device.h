@@ -10,7 +10,7 @@ extern "C" {
 void* gfxCreateDevice(int width, int height);
 void  gfxDestroyDevice(void* device);
 void  gfxMakeCurrent(void* device);
-void  gfxFlush(unsigned char* fb);
+void gfxFlush(unsigned char* fb, int out_width, int out_height);
 
 #ifdef __cplusplus
 }

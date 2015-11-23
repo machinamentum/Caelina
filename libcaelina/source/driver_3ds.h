@@ -29,7 +29,7 @@ struct gfx_device_3ds : public gfx_device {
     ~gfx_device_3ds();
     void clear(u8 r, u8 g, u8 b, u8 a);
     void clearDepth(GLdouble depth);
-    void flush(u8* fb);
+    void flush(u8* fb, int w, int h);
     void render_vertices(const mat4& projection, const mat4& modelview);
     void render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units);
     void repack_texture(gfx_texture& tex);

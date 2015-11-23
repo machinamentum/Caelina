@@ -489,11 +489,11 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     
 }
 
-void gfx_device_3ds::flush(u8 *fb) {
+void gfx_device_3ds::flush(u8 *fb, int w, int h) {
     
     GX_SetDisplayTransfer(NULL, (u32*)gpuOut, GX_BUFFER_DIM(width, height),
                           (u32*)fb,
-                          GX_BUFFER_DIM(width, height), 0x1000);
+                          GX_BUFFER_DIM(w, h), 0x1000);
 }
 
 #define RGBA8(r,g,b,a) ((((r)&0xFF)<<24) | (((g)&0xFF)<<16) | (((b)&0xFF)<<8) | (((a)&0xFF)<<0))
