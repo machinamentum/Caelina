@@ -35,7 +35,7 @@ void *gfxMakeCurrent(void* device) {
 void gfxResize(int new_width, int new_height) {
     CHECK_NULL(g_state);
 
-    gfx_device_3ds *state = (gfx_device_3ds*)g_state;
+    gfx_device_3ds *state = (gfx_device_3ds*) g_state->device;
     vramFree(state->gpuOut);
     vramFree(state->gpuDOut);
     state->gpuOut = (u32*)vramAlloc(new_width * new_height * 4);
