@@ -5,12 +5,6 @@
 #include "default_3ds_vsh_shbin.h"
 #include "vertex_lighting_3ds_vsh_shbin.h"
 
-#define DISPLAY_TRANSFER_FLAGS \
-    (GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
-    GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8) | \
-    GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_X))
-
-
 #undef GPUCMD_AddSingleParam
 static void GPUCMD_AddSingleParam(u32 header, u32 param) {
     GPUCMD_Add(header, &param, 1);
@@ -489,11 +483,16 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     
 }
 
-void gfx_device_3ds::flush(u8 *fb, int w, int h) {
+#define DISPLAY_TRANSFER_FLAGS \
+  (GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
+  GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | \
+  GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
+
+void gfx_device_3ds::flush(u8 *fb, int w, int h, int format) {
     
     GX_SetDisplayTransfer(NULL, (u32*)gpuOut, GX_BUFFER_DIM(width, height),
                           (u32*)fb,
-                          GX_BUFFER_DIM(w, h), 0x1000);
+                          GX_BUFFER_DIM(w, h), DISPLAY_TRANSFER_FLAGS | GX_TRANSFER_OUT_FORMAT(format));
 }
 
 #define RGBA8(r,g,b,a) ((((r)&0xFF)<<24) | (((g)&0xFF)<<16) | (((b)&0xFF)<<8) | (((a)&0xFF)<<0))

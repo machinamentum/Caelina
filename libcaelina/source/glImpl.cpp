@@ -30,11 +30,11 @@ void  gfxMakeCurrent(void* device) {
     g_state = ((gfx_device*)device)->g_state;
 }
 
-void gfxFlush(unsigned char* fb, int out_width, int out_height) {
+void gfxFlush(unsigned char* fb, int out_width, int out_height, int format) {
     CHECK_NULL(g_state);
     CHECK_NULL(fb);
 
-    g_state->device->flush(fb, out_width, out_height);
+    g_state->device->flush(fb, out_width, out_height, format);
 }
 
 #ifndef DISABLE_LISTS
