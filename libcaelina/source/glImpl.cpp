@@ -22,12 +22,14 @@ void gfxDestroyDevice(void* device) {
 }
 
 
-void gfxMakeCurrent(void* device) {
+void *gfxMakeCurrent(void* device) {
+    void *previous = g_state;
     if (!device) {
         g_state = NULL;
-        return;
+        return previous;
     }
     g_state = ((gfx_device*)device)->g_state;
+    return previous;
 }
 
 void gfxResize(int new_width, int new_height) {
