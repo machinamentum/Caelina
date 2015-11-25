@@ -80,21 +80,33 @@ struct VBO {
     
 };
 
+static u32 *gpuCmd = nullptr;
+static u32 gpuCmdSize = 0;
+static shaderProgram_s shader;
+static shaderProgram_s vertex_lighting_shader;
+static DVLB_s* dvlb_default = nullptr;
+static DVLB_s* dvlb_lighting = nullptr;
+
 gfx_device_3ds::gfx_device_3ds(gfx_state *state, int w, int h) : gfx_device(state, w, h) {
-    gpuCmdSize = 0x40000;
-    gpuCmd = (u32*)linearAlloc(gpuCmdSize*4);
+    if (!gpuCmd) {
+      gpuCmdSize = 0x40000;
+      gpuCmd = (u32*)linearAlloc(gpuCmdSize*4);
+      GPU_Init(NULL);
+      GPU_Reset(NULL, gpuCmd, gpuCmdSize);
+    }
+
+    if (!dvlb_default) {
+      dvlb_default = DVLB_ParseFile((u32*)default_3ds_vsh_shbin, default_3ds_vsh_shbin_size);
+      shaderProgramInit(&shader);
+      shaderProgramSetVsh(&shader, &dvlb_default->DVLE[0]);
+
+      dvlb_lighting = DVLB_ParseFile((u32*)vertex_lighting_3ds_vsh_shbin, vertex_lighting_3ds_vsh_shbin_size);
+      shaderProgramInit(&vertex_lighting_shader);
+      shaderProgramSetVsh(&vertex_lighting_shader, &dvlb_lighting->DVLE[0]);
+    }
+
     gpuOut=(u32*)vramAlloc(height*width*4);
     gpuDOut=(u32*)vramAlloc(height*height*4);
-    GPU_Init(NULL);
-    GPU_Reset(NULL, gpuCmd, gpuCmdSize);
-
-    dvlb_default = DVLB_ParseFile((u32*)default_3ds_vsh_shbin, default_3ds_vsh_shbin_size);
-    shaderProgramInit(&shader);
-    shaderProgramSetVsh(&shader, &dvlb_default->DVLE[0]);
-
-    dvlb_lighting = DVLB_ParseFile((u32*)vertex_lighting_3ds_vsh_shbin, vertex_lighting_3ds_vsh_shbin_size);
-    shaderProgramInit(&vertex_lighting_shader);
-    shaderProgramSetVsh(&vertex_lighting_shader, &dvlb_lighting->DVLE[0]);
 }
 
 gfx_device_3ds::~gfx_device_3ds() {
@@ -154,6 +166,7 @@ void gfx_device_3ds::free_texture(gfx_texture &tex) {
     if (tex.extdata) {
         vramFree(tex.colorBuffer);
     } else {
+        linearFree(tex.unpackedColorBuffer);
         linearFree(tex.colorBuffer);
     }
 }
@@ -493,6 +506,7 @@ void gfx_device_3ds::flush(u8 *fb, int w, int h, int format) {
     GX_SetDisplayTransfer(NULL, (u32*)gpuOut, GX_BUFFER_DIM(width, height),
                           (u32*)fb,
                           GX_BUFFER_DIM(w, h), DISPLAY_TRANSFER_FLAGS | GX_TRANSFER_OUT_FORMAT(format));
+    safeWaitForEvent(gspEvents[GSPEVENT_PPF]);
 }
 
 #define RGBA8(r,g,b,a) ((((r)&0xFF)<<24) | (((g)&0xFF)<<16) | (((b)&0xFF)<<8) | (((a)&0xFF)<<0))

@@ -15,14 +15,8 @@ struct gfx_device_3ds_ext {
 };
 
 struct gfx_device_3ds : public gfx_device {
-    u32 gpuCmdSize;
-    u32 *gpuCmd;
     u32 *gpuDOut;
     u32 *gpuOut;
-    shaderProgram_s shader;
-    shaderProgram_s vertex_lighting_shader;
-    DVLB_s* dvlb_default;
-    DVLB_s* dvlb_lighting;
     gfx_device_3ds_ext ext_state;
 
     gfx_device_3ds(gfx_state *state, int w, int h);
