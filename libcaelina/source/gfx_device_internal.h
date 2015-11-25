@@ -342,10 +342,8 @@ struct gfx_state {
 };
 
 class gfx_device {
-protected:
-    int width, height;
-
 public:
+    int width, height;
     gfx_state* g_state = NULL;
     
     gfx_device(gfx_state *state, int w, int h) {

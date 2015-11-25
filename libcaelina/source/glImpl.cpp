@@ -22,12 +22,24 @@ void gfxDestroyDevice(void* device) {
 }
 
 
-void  gfxMakeCurrent(void* device) {
+void gfxMakeCurrent(void* device) {
     if (!device) {
         g_state = NULL;
         return;
     }
     g_state = ((gfx_device*)device)->g_state;
+}
+
+void gfxResize(int new_width, int new_height) {
+    CHECK_NULL(g_state);
+
+    gfx_device_3ds *state = (gfx_device_3ds*)g_state;
+    vramFree(state->gpuOut);
+    vramFree(state->gpuDOut);
+    state->gpuOut = (u32*)vramAlloc(new_width * new_height * 4);
+    state->gpuDOut = (u32*)vramAlloc(new_width * new_height * 4);
+    state->width = new_width;
+    state->height = new_height;
 }
 
 void gfxFlush(unsigned char* fb, int out_width, int out_height, int format) {
