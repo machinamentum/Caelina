@@ -192,6 +192,8 @@ struct gfx_command {
         STENCIL_FUNC,
         STENCIL_OP,
         BLEND_COLOR,
+        CLEAR_DEPTH,
+        DEPTH_FUNC,
         NONE
     };
 
@@ -295,6 +297,9 @@ struct gfx_state {
 
     GLenum alphaTestFunc = GL_ALWAYS;
     GLclampf alphaTestRef = 0.0;
+
+    GLfloat clearDepth = 1.0f;
+    GLenum depthFunc = GL_LESS;
 
     GLboolean colorMaskRed = GL_TRUE;
     GLboolean colorMaskBlue = GL_TRUE;

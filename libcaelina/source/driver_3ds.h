@@ -21,7 +21,7 @@ struct gfx_device_3ds : public gfx_device {
 
     gfx_device_3ds(gfx_state *state, int w, int h);
     ~gfx_device_3ds();
-    void clear(u8 r, u8 g, u8 b, u8 a);
+    void clear(float r, float g, float b, float a);
     void clearDepth(GLdouble depth);
     void flush(u8* fb, int w, int h, int f);
     void render_vertices(const mat4& projection, const mat4& modelview);

@@ -124,6 +124,60 @@ void glClearColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) 
                                clampf(alpha, 0.0f, 1.0f));
 }
 
+void glClearDepth( GLclampd depth ) {
+  CHECK_NULL(g_state);
+
+#ifndef DISABLE_LISTS
+  if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+    gfx_command comm;
+    comm.type = gfx_command::CLEAR_DEPTH;
+    comm.floats[0] = depth;
+    getList(g_state->currentDisplayList)->commands.push_back(comm);
+  }
+
+  CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
+
+  g_state->clearDepth = clampf(depth, 0.0f, 1.0f);
+}
+
+void glDepthFunc( GLenum func ) {
+  CHECK_NULL(g_state);
+
+#ifndef DISABLE_LISTS
+  if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+    gfx_command comm;
+    comm.type = gfx_command::DEPTH_FUNC;
+    comm.enum1 = func;
+    getList(g_state->currentDisplayList)->commands.push_back(comm);
+  }
+
+  CHECK_COMPILE_AND_EXECUTE(g_state);
+#endif
+
+#ifndef DISABLE_ERRORS
+  switch (func) {
+    case GL_NEVER:
+    case GL_LESS:
+    case GL_EQUAL:
+    case GL_LEQUAL:
+    case GL_GREATER:
+    case GL_NOTEQUAL:
+    case GL_GEQUAL:
+    case GL_ALWAYS: {
+
+    } break;
+
+    default: {
+      setError(GL_INVALID_ENUM);
+    }
+      break;
+  }
+#endif
+
+  g_state->depthFunc = func;
+}
+
 void glClear (GLbitfield mask) {
     CHECK_NULL(g_state);
 
@@ -146,14 +200,13 @@ void glClear (GLbitfield mask) {
 #endif
 
     if(mask & GL_COLOR_BUFFER_BIT) {
-        u8 r = (u8)(g_state->clearColor.x * 255.0f);
-        u8 g = (u8)(g_state->clearColor.y * 255.0f);
-        u8 b = (u8)(g_state->clearColor.z * 255.0f);
-        u8 a = (u8)(g_state->clearColor.w * 255.0f);
-        g_state->device->clear(r, g, b, a);
+        g_state->device->clear(g_state->clearColor.x,
+                               g_state->clearColor.y,
+                               g_state->clearColor.z,
+                               g_state->clearColor.w);
     }
     if(mask & GL_DEPTH_BUFFER_BIT) {
-        g_state->device->clearDepth(1.0);
+        g_state->device->clearDepth(g_state->clearDepth);
     }
     if(mask & GL_STENCIL_BUFFER_BIT) {
         //TODO implement stencil operations

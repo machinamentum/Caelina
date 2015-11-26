@@ -110,7 +110,12 @@ static void executeList(gfx_display_list *list) {
             case gfx_command::BLEND_COLOR:
                 glBlendColor(comm.floats[0], comm.floats[1], comm.floats[2], comm.floats[3]);
                 break;
-
+            case gfx_command::CLEAR_DEPTH:
+                glClearDepth(comm.floats[0]);
+                break;
+            case gfx_command::DEPTH_FUNC:
+                glDepthFunc(comm.enum1);
+                break;
             case gfx_command::NONE:
                 break;
         }
