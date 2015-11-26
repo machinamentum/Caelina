@@ -163,6 +163,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
         case (GL_ALPHA):
         case (GL_RGB):
         case (GL_RGBA):
+        case (GL_BGRA):
         case (GL_LUMINANCE):
         case (GL_LUMINANCE_ALPHA): {
 
@@ -200,6 +201,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
         case (GL_ALPHA):
         case (GL_RGB):
         case (GL_RGBA):
+        case (GL_BGRA):
         case (GL_LUMINANCE):
         case (GL_LUMINANCE_ALPHA): {
 
@@ -238,7 +240,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
     }
 
     if((type == GL_UNSIGNED_SHORT_4_4_4_4 || type == GL_UNSIGNED_SHORT_5_5_5_1)
-       && format != GL_RGBA) {
+       && (format != GL_RGBA || format != GL_BGRA) ) {
         setError(GL_INVALID_OPERATION);
         return;
     }
@@ -289,6 +291,30 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
                         }
                     } break;
 
+                  case (GL_BGRA): {
+                    if(type == GL_UNSIGNED_BYTE) {
+                      int index = (x + y * width) * 4;
+                      GLubyte* bpixels = (GLubyte*)pixels;
+                      text->unpackedColorBuffer[index + 3] = bpixels[accum + 0];
+                      text->unpackedColorBuffer[index + 2] = bpixels[accum + 1];
+                      text->unpackedColorBuffer[index + 1] = bpixels[accum + 2];
+                      text->unpackedColorBuffer[index + 0] = bpixels[accum + 3];
+                      accum += 4;
+                    }
+                    else if (type == GL_UNSIGNED_SHORT_5_5_5_1) {
+                      int index = (x + y * width) * 4;
+                      GLushort pixel = ((GLushort*)pixels)[accum];
+                      float R = (float)((pixel >> 11) & 0b11111) / 31.0f;
+                      float G = (float)((pixel >> 6) & 0b11111) / 31.0f;
+                      float B = (float)((pixel >> 1) & 0b11111) / 31.0f;
+                      text->unpackedColorBuffer[index + 3] = (GLubyte)(R *  255.0f);
+                      text->unpackedColorBuffer[index + 2] = (GLubyte)(G *  255.0f);
+                      text->unpackedColorBuffer[index + 1] = (GLubyte)(B *  255.0f);
+                      text->unpackedColorBuffer[index + 0] = 0xFF * (pixel & 1);
+                      accum ++;
+                    }
+                  } break;
+
                     case (GL_ALPHA): {
                         if(type == GL_UNSIGNED_BYTE) {
                             int index = (x + y * width) * 4;
@@ -336,6 +362,7 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
         case GL_ALPHA:
         case GL_RGB:
         case GL_RGBA:
+        case GL_BGRA:
         case GL_LUMINANCE:
         case GL_LUMINANCE_ALPHA: {
 
@@ -417,7 +444,31 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
                             accum ++;
                         }
                     } break;
-                        
+
+                  case (GL_BGRA): {
+                    if(type == GL_UNSIGNED_BYTE) {
+                      int index = (x + y * width) * 4;
+                      GLubyte* bpixels = (GLubyte*)pixels;
+                      text->unpackedColorBuffer[index + 3] = bpixels[accum + 0];
+                      text->unpackedColorBuffer[index + 2] = bpixels[accum + 1];
+                      text->unpackedColorBuffer[index + 1] = bpixels[accum + 2];
+                      text->unpackedColorBuffer[index + 0] = bpixels[accum + 3];
+                      accum += 4;
+                    }
+                    else if (type == GL_UNSIGNED_SHORT_5_5_5_1) {
+                      int index = (x + y * width) * 4;
+                      GLushort pixel = ((GLushort*)pixels)[accum];
+                      float R = (float)((pixel >> 11) & 0b11111) / 31.0f;
+                      float G = (float)((pixel >> 6) & 0b11111) / 31.0f;
+                      float B = (float)((pixel >> 1) & 0b11111) / 31.0f;
+                      text->unpackedColorBuffer[index + 3] = (GLubyte)(R *  255.0f);
+                      text->unpackedColorBuffer[index + 2] = (GLubyte)(G *  255.0f);
+                      text->unpackedColorBuffer[index + 1] = (GLubyte)(B *  255.0f);
+                      text->unpackedColorBuffer[index + 0] = 0xFF * (pixel & 1);
+                      accum ++;
+                    }
+                  } break;
+
                     case (GL_ALPHA): {
                         if(type == GL_UNSIGNED_BYTE) {
                             int index = (x + y * text->width) * 4;
