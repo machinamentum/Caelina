@@ -503,15 +503,13 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
 
 void gfx_device_3ds::flush(u8 *fb, int w, int h, int format) {
     
-    GX_SetDisplayTransfer(NULL, (u32*)gpuOut, GX_BUFFER_DIM(width, height),
-                          (u32*)fb,
-                          GX_BUFFER_DIM(w, h), DISPLAY_TRANSFER_FLAGS | GX_TRANSFER_OUT_FORMAT(format));
+    GX_SetDisplayTransfer(nullptr, (u32*)gpuOut, GX_BUFFER_DIM(width, height), (u32 *)fb, GX_BUFFER_DIM(w, h), DISPLAY_TRANSFER_FLAGS | GX_TRANSFER_OUT_FORMAT(format));
     safeWaitForEvent(gspEvents[GSPEVENT_PPF]);
 }
 
-#define RGBA8(r,g,b,a) ((((r)&0xFF)<<24) | (((g)&0xFF)<<16) | (((b)&0xFF)<<8) | (((a)&0xFF)<<0))
+#define RGBA8(r,g,b,a) ( (((r)&0xFF)<<24) | (((g)&0xFF)<<16) | (((b)&0xFF)<<8) | (((a)&0xFF)<<0) )
 void gfx_device_3ds::clear(u8 r, u8 g, u8 b, u8 a) {
     
-    GX_SetMemoryFill(NULL, (u32*)gpuOut, RGBA8(r,g,b,a), (u32*)&gpuOut[0x2EE00], 0x201, (u32*)gpuDOut, 0x00000000, (u32*)&gpuDOut[0x2EE00], 0x201);
+    GX_SetMemoryFill(nullptr, (u32*)gpuOut, RGBA8(r,g,b,a), &((u32*)gpuOut)[width * height], GX_FILL_TRIGGER | GX_FILL_32BIT_DEPTH, (u32*)gpuDOut, 0x00000000, &((u32*)gpuDOut)[width * height], GX_FILL_TRIGGER | GX_FILL_32BIT_DEPTH);
     safeWaitForEvent(gspEvents[GSPEVENT_PSC0]);
 }
