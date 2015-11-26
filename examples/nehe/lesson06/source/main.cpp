@@ -111,7 +111,7 @@ int main()
   hidInit();
   romfsInit();
 
-  void* device = gfxCreateDevice(240, 400);
+  void* device = gfxCreateDevice(240, 400, 0);
   gfxMakeCurrent(device);
 
   glViewport(0, 0, 240, 400);
