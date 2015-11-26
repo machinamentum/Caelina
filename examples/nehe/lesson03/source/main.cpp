@@ -77,7 +77,7 @@ int main()
 
         DrawGLScene();
 
-        gfxFlush(gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL), 240, 400);
+        gfxFlush(gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL), 240, 400, GX_TRANSFER_FMT_RGB8);
         gfxFlushBuffers();
         gfxSwapBuffersGpu();
         gspWaitForVBlank();
