@@ -1,17 +1,28 @@
 #include <cstdlib>
 #include <GL/gl.h>
 #include "glImpl.h"
+#include "gfx_device.h"
 
 extern gfx_state *g_state;
 
-static gfx_texture *getTexture(GLuint name) {
-    for(unsigned int i = 0; i < g_state->textures.size(); i++) {
-        if(g_state->textures[i].tname == name) {
-            return &g_state->textures[i];
+static sbuffer<gfx_texture> sharedTextures;
+
+gfx_texture *getTexture(GLuint name) {
+    if (g_state->flags & CAELINA_SHARED_TEXTURES) {
+        for(unsigned int i = 0; i < sharedTextures.size(); i++) {
+            if(sharedTextures[i].tname == name) {
+                return &sharedTextures[i];
+            }
+        }
+    } else {
+        for(unsigned int i = 0; i < g_state->textures.size(); i++) {
+            if(g_state->textures[i].tname == name) {
+              return &g_state->textures[i];
+            }
         }
     }
 
-    return NULL;
+    return nullptr;
 }
 
 extern "C"
@@ -26,9 +37,17 @@ GLboolean glIsTexture( GLuint texture ) {
 
     if(texture == 0) return GL_FALSE;
 
-    for(unsigned int i = 0; i < g_state->textures.size(); i++) {
-        if(g_state->textures[i].tname == texture && g_state->textures[i].target != 0) {
-            return GL_TRUE;
+    if (g_state->flags & CAELINA_SHARED_TEXTURES) {
+        for(unsigned int i = 0; i < sharedTextures.size(); i++) {
+            if(sharedTextures[i].tname == texture && sharedTextures[i].target != 0) {
+                return GL_TRUE;
+            }
+        }
+    } else {
+        for(unsigned int i = 0; i < g_state->textures.size(); i++) {
+            if(g_state->textures[i].tname == texture && g_state->textures[i].target != 0) {
+                return GL_TRUE;
+            }
         }
     }
 
@@ -46,14 +65,26 @@ void glGenTextures( GLsizei n, GLuint *textures ) {
     }
 #endif
 
-    for(GLsizei i = 0; i < n; ++i) {
-        GLuint tname = rand() + 1;
-        while(g_state->textures.contains(gfx_texture(tname))) {
-            tname = rand() + 1;
-        }
-        textures[i] = tname;
+    if (g_state->flags & CAELINA_SHARED_TEXTURES) {
+        for(GLsizei i = 0; i < n; ++i) {
+            GLuint tname = rand() + 1;
+            while(sharedTextures.contains(gfx_texture(tname))) {
+                tname = rand() + 1;
+            }
+            textures[i] = tname;
 
-        g_state->textures.push(gfx_texture(tname));
+            sharedTextures.push(gfx_texture(tname));
+        }
+    } else {
+      for(GLsizei i = 0; i < n; ++i) {
+          GLuint tname = rand() + 1;
+          while(g_state->textures.contains(gfx_texture(tname))) {
+              tname = rand() + 1;
+          }
+          textures[i] = tname;
+
+          g_state->textures.push(gfx_texture(tname));
+      }
     }
 }
 
@@ -67,16 +98,24 @@ void glDeleteTextures( GLsizei n, const GLuint *textures) {
     }
 #endif
 
+
     for (GLsizei i = 0; i < n; ++i) {
         gfx_texture *text = getTexture(textures[i]);
         if (text) {
             g_state->device->free_texture(*text);
         }
-        g_state->textures.erase(text);
+
+        if (g_state->flags & CAELINA_SHARED_TEXTURES) {
+            sharedTextures.erase(text);
+        } else {
+            g_state->textures.erase(text);
+        }
+
         if (textures[i] == g_state->currentBoundTexture) {
             g_state->currentBoundTexture = 0;
         }
     }
+
 }
 
 void glBindTexture( GLenum target, GLuint texture ) {
@@ -94,17 +133,15 @@ void glBindTexture( GLenum target, GLuint texture ) {
     CHECK_COMPILE_AND_EXECUTE(g_state);
 #endif
 
-    gfx_texture *text = NULL;
-    for(unsigned int i = 0; i < g_state->textures.size(); i++) {
-        if(g_state->textures[i].tname == texture) {
-            text = &g_state->textures[i];
-            break;
-        }
-    }
+    gfx_texture *text = getTexture(texture);
 
     if(!text) {
         text = new gfx_texture(texture, target);
-        g_state->textures.push(*text);
+        if (g_state->flags & CAELINA_SHARED_TEXTURES) {
+            sharedTextures.push(*text);
+        } else {
+            g_state->textures.push(*text);
+        }
         glBindTexture(target, texture);
         return;
     }
@@ -246,13 +283,7 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
     }
 #endif
 
-    gfx_texture* text = NULL;
-    for(unsigned int i = 0; i < g_state->textures.size(); i++) {
-        if(g_state->textures[i].tname == g_state->currentBoundTexture) {
-            text = &g_state->textures[i];
-            break;
-        }
-    }
+    gfx_texture* text = getTexture(g_state->currentBoundTexture);
 
     if (!text) return;
 
@@ -399,13 +430,7 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
     }
 #endif
 
-    gfx_texture* text = NULL;
-    for(unsigned int i = 0; i < g_state->textures.size(); i++) {
-        if(g_state->textures[i].tname == g_state->currentBoundTexture) {
-            text = &g_state->textures[i];
-            break;
-        }
-    }
+    gfx_texture* text = getTexture(g_state->currentBoundTexture);
 
 #ifndef DISABLE_ERRORS
     if (!text) {
@@ -609,13 +634,7 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
     }
 #endif
 
-    gfx_texture* text = NULL;
-    for(unsigned int i = 0; i < g_state->textures.size(); i++) {
-        if(g_state->textures[i].tname == g_state->currentBoundTexture) {
-            text = &g_state->textures[i];
-            break;
-        }
-    }
+    gfx_texture* text = getTexture(g_state->currentBoundTexture);
 
     if (!text) return;
 

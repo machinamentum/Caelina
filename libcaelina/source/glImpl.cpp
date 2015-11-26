@@ -11,8 +11,9 @@ gfx_state* g_state = NULL;
 
 extern "C" {
 
-void* gfxCreateDevice(int width, int height) {
+void* gfxCreateDevice(int width, int height, int flags) {
     gfx_device_3ds *dev = new gfx_device_3ds(new gfx_state(), width, height);
+    dev->g_state->flags = flags;
     dev->g_state->device = dev;
     return dev;
 }

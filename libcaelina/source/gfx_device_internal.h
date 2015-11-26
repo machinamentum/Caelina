@@ -259,6 +259,7 @@ struct gfx_material {
 
 struct gfx_state {
     gfx_device_3ds* device;
+    int flags;
 
     vec4 clearColor;
 

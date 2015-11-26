@@ -419,13 +419,8 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
     } else {
         GPU_SetTextureEnable(GPU_TEXUNIT0);
 
-        gfx_texture* text = NULL;
-        for(unsigned int i = 0; i < g_state->textures.size(); i++) {
-            if(g_state->textures[i].tname == g_state->currentBoundTexture) {
-                text = &g_state->textures[i];
-                break;
-            }
-        }
+        extern gfx_texture *getTexture(GLuint name);
+        gfx_texture* text = getTexture(g_state->currentBoundTexture);
         if (text) {
 
             if (text->format == GL_ALPHA) {
