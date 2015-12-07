@@ -541,25 +541,6 @@ static inline u32 floatrawbits(float f)
   return s.i;
 }
 
-static inline u32 swap24(u32 s) {
-  union {
-    u32 i;
-    struct {
-      char p0;
-      char p1;
-      char p2;
-      char p3;
-    } b;
-  } u;
-  u.i = s;
-  u.b.p3 = u.b.p0;
-  u.b.p0 = u.b.p1;
-  u.b.p1 = u.b.p2;
-  u.b.p2 = u.b.p3;
-  u.b.p3 = 0;
-  return u.i;
-}
-
 u32 f32tof24(float f)
 {
   u32 i = floatrawbits(f);
@@ -608,7 +589,7 @@ void gfx_device_3ds::render_vertices_array(GLenum mode, GLint first, GLsizei cou
   // make tex, color, and normal immediate values
   // TODO texcoordpointer
   GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, 1);
-  GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, (f32tof24(1.0)));
+  GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, 0);
   GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA1, 0);
   GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA2, 0);
   // TODO colorpointer
@@ -630,10 +611,10 @@ void gfx_device_3ds::render_vertices_array(GLenum mode, GLint first, GLsizei cou
     u32 cr = f32tof24(cc.x);
     u32 cg = f32tof24(cc.y);
     u32 cb = f32tof24(cc.z);
-    u32 ca = f32tof24(0.0f);
-    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, (cr | ((cg & 0xFF) << 24)) );
-    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA1, ((cg >> 8) & 0xFFFF) | ((cb & 0xFFFF) << 16));
-    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA2, ((cb >> 16) & 0xFF) | (ca << 8));
+    u32 ca = f32tof24(cc.w);
+    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, ((cb >> 16) & 0xFF) | (ca << 8));
+    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA1, ((cg >> 8) & 0xFFFF) | (((cb) & 0xFFFF) << 16));
+    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA2, cr | (((cg) & 0xFF) << 24));
   }
 
   GPU_DrawArray(gl_primitive(mode), first, count);
