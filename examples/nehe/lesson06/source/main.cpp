@@ -28,10 +28,6 @@ GLuint LoadPNG(const char *FileName) {
   return 0;
 }
 
-extern "C" {
-  extern void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar);
-}
-
 int Textures[1];
 GLfloat     xrot;                               // X Rotation ( NEW )
 GLfloat     yrot;                               // Y Rotation ( NEW )
@@ -126,7 +122,7 @@ int main()
   float b = -t;
   float l = aspect * b;
   float r = aspect * t;
-  glFrustumf(l, r, b, t, near, far);
+  glFrustum(l, r, b, t, near, far);
   //3DS' framebuffers are sideways
   glRotatef(-90.0f, 0.0f, 0.0f, 1.0f);
 

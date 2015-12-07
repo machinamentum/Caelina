@@ -8,11 +8,6 @@
 #include <GL/gl.h>
 #include <gfx_device.h>
 
-
-extern "C" {
-    extern void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar);
-}
-
 GLfloat     rtri;                       // Angle For The Triangle ( NEW )
 GLfloat     rquad;                      // Angle For The Quad     ( NEW )
 
@@ -66,7 +61,7 @@ int main()
     float b = -t;
     float l = aspect * b;
     float r = aspect * t;
-    glFrustumf(l, r, b, t, near, far);
+    glFrustum(l, r, b, t, near, far);
     //3DS' framebuffers are sideways
     glRotatef(-90.0f, 0.0f, 0.0f, 1.0f);
 

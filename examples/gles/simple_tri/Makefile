@@ -31,8 +31,8 @@ TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
-INCLUDES	:=	include ../../common
-ROMFS		:=	romfs
+INCLUDES	:=	include
+ROMFS		:=	
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -50,7 +50,7 @@ CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:= -lcaelina -lGL -lctru -lm
+LIBS	:= -lcaelina -lGLESv1 -lctru -lm
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing

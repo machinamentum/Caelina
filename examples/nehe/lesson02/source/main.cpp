@@ -8,11 +8,6 @@
 #include <GL/gl.h>
 #include <gfx_device.h>
 
-
-extern "C" {
-    extern void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar);
-}
-
 void DrawGLScene() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -54,7 +49,7 @@ int main()
     float b = -t;
     float l = aspect * b;
     float r = aspect * t;
-    glFrustumf(l, r, b, t, near, far);
+    glFrustum(l, r, b, t, near, far);
     //3DS' framebuffers are sideways
     glRotatef(-90.0f, 0.0f, 0.0f, 1.0f);
 
