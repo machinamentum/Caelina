@@ -1,5 +1,3 @@
-
-#include <GL/gl.h>
 #include "glImpl.h"
 
 extern gfx_state *g_state;
@@ -110,6 +108,8 @@ void glLightf( GLenum light, GLenum pname, GLfloat param ) {
 
 }
 
+#ifndef DISABLE_LISTS
+
 static int get_light_params_size( GLenum pname ) {
     switch (pname) {
         case GL_SPOT_EXPONENT:
@@ -128,6 +128,8 @@ static int get_light_params_size( GLenum pname ) {
         default: return -1;
     }
 }
+
+#endif
 
 void glLightfv( GLenum light, GLenum pname, const GLfloat *params ) {
     CHECK_NULL(g_state);

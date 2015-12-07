@@ -1,5 +1,3 @@
-
-#include <GL/gl.h>
 #include "glImpl.h"
 
 extern gfx_state *g_state;
@@ -41,10 +39,12 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
         case (GL_ONE_MINUS_SRC_ALPHA):
         case (GL_DST_ALPHA):
         case (GL_ONE_MINUS_DST_ALPHA):
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case (GL_CONSTANT_COLOR):
         case (GL_ONE_MINUS_CONSTANT_COLOR):
         case (GL_CONSTANT_ALPHA):
         case (GL_ONE_MINUS_CONSTANT_ALPHA):
+#endif
         case (GL_SRC_ALPHA_SATURATE): {
 
         } break;
@@ -65,10 +65,12 @@ void glBlendFunc( GLenum sfactor, GLenum dfactor ) {
         case (GL_ONE_MINUS_SRC_ALPHA):
         case (GL_DST_ALPHA):
         case (GL_ONE_MINUS_DST_ALPHA):
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case (GL_CONSTANT_COLOR):
         case (GL_ONE_MINUS_CONSTANT_COLOR):
         case (GL_CONSTANT_ALPHA):
         case (GL_ONE_MINUS_CONSTANT_ALPHA):
+#endif
         {
 
         } break;

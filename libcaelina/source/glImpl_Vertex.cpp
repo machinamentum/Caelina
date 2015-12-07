@@ -1,5 +1,3 @@
-
-#include <GL/gl.h>
 #include "glImpl.h"
 
 extern gfx_state *g_state;
@@ -10,6 +8,8 @@ extern "C"
 #ifndef DISABLE_LISTS
 gfx_display_list *getList(GLuint name);
 #endif
+
+#ifndef SPEC_GLES
 
 void glBegin( GLenum mode ) {
     CHECK_NULL(g_state);
@@ -137,6 +137,8 @@ void glColor3f( GLfloat red, GLfloat green, GLfloat blue ) {
     glColor4f(red, green, blue, 1.0f);
 }
 
+#endif // SPEC_GLES
+
 void glColor4f( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha ) {
     CHECK_NULL(g_state);
 
@@ -149,6 +151,8 @@ void glColor4f( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha ) {
 
     g_state->currentVertexColor = vec4(red, green, blue, alpha);
 }
+
+#ifndef SPEC_GLES
 
 void glVertex2i( GLint x, GLint y )
 {
@@ -180,6 +184,8 @@ void glVertex4f( GLfloat x, GLfloat y, GLfloat z, GLfloat w ) {
     g_state->vertexBuffer.push(result);
 }
 
+#endif // SPEC_GLES
+
 void glNormal3f( GLfloat nx, GLfloat ny, GLfloat nz ) {
     CHECK_NULL(g_state);
 
@@ -193,4 +199,71 @@ void glNormal3f( GLfloat nx, GLfloat ny, GLfloat nz ) {
     g_state->currentVertexNormal = vec4(nx, ny, nz, 1.0);
 }
 
+void glVertexPointer (GLint size, GLenum type, GLsizei stride, const GLvoid *pointer) {
+  CHECK_NULL(g_state);
+
+#ifndef DISABLE_ERRORS
+  if (size < 2 || size > 4) {
+    setError(GL_INVALID_VALUE);
+  }
+
+  switch (type) {
+    case GL_SHORT:
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
+    case GL_INT:
+#endif
+    case GL_FLOAT:
+#ifndef SPEC_GLES
+    case GL_DOUBLE:
+#endif
+    {
+
+    } break;
+
+
+    default:
+      setError(GL_INVALID_ENUM);
+  }
+
+  if (stride < 0)
+    setError(GL_INVALID_VALUE);
+#endif
+
+  g_state->vertexPtrSize = size;
+  g_state->vertexPtrType = type;
+  g_state->vertexPtrStride = stride;
+  g_state->vertexPtr = pointer;
 }
+
+void glDrawArrays (GLenum mode, GLint first, GLsizei count) {
+  CHECK_NULL(g_state);
+
+#ifndef DISABLE_ERRORS
+  switch(mode) {
+    case (GL_POINTS):
+    case (GL_LINES):
+    case (GL_LINE_STRIP):
+    case (GL_LINE_LOOP):
+    case (GL_TRIANGLES):
+    case (GL_TRIANGLE_STRIP):
+    case (GL_TRIANGLE_FAN):
+    {
+
+    } break;
+
+    default: {
+      setError(GL_INVALID_ENUM);
+    } break;
+  }
+
+  if (count < 0)
+    setError(GL_INVALID_VALUE);
+#endif
+
+  mat4 projectionMatrix = g_state->projectionMatrixStack[g_state->currentProjectionMatrix];
+  mat4 modelvieMatrix = g_state->modelviewMatrixStack[g_state->currentModelviewMatrix];
+  g_state->device->render_vertices_array(mode, first, count, projectionMatrix, modelvieMatrix);
+
+}
+
+} // extern "C"

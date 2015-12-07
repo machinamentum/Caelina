@@ -1,5 +1,3 @@
-
-#include <GL/gl.h>
 #include "glImpl.h"
 
 extern gfx_state *g_state;
@@ -279,6 +277,8 @@ void glScalef( GLfloat x, GLfloat y, GLfloat z ) {
     }
 }
 
+#ifndef SPEC_GLES
+
 void glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val ) {
     CHECK_NULL(g_state);
 
@@ -322,24 +322,86 @@ void glOrtho( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdo
     }
 }
 
-void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar) {
-    CHECK_NULL(g_state);
+#else
+
+void glOrthof (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar) {
+  CHECK_NULL(g_state);
+
+  CHECK_WITHIN_BEGIN_END(g_state);
+
+#ifndef DISABLE_ERRORS
+  if(left == right || top == bottom || zNear == zFar) {
+    setError(GL_INVALID_VALUE);
+    return;
+  }
+#endif
+
+  mat4 ortho = mat4::ortho(left, right, bottom, top, zNear, zFar);
+
+  switch(g_state->matrixMode) {
+    case (GL_MODELVIEW): {
+      g_state->modelviewMatrixStack[g_state->currentModelviewMatrix] = g_state->modelviewMatrixStack[g_state->currentModelviewMatrix] * ortho;
+    } break;
+    case (GL_PROJECTION): {
+      g_state->projectionMatrixStack[g_state->currentProjectionMatrix] = g_state->projectionMatrixStack[g_state->currentProjectionMatrix] * ortho;
+    } break;
+    case (GL_TEXTURE): {
+      g_state->textureMatrixStack[g_state->currentTextureMatrix] = g_state->textureMatrixStack[g_state->currentTextureMatrix] * ortho;
+    } break;
+  }
+}
+
+#endif // SPEC_GLES
+
+#ifndef SPEC_GLES
+
+void glFrustum ( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val ) {
+  CHECK_NULL(g_state);
 
 #ifndef DISABLE_LISTS
-    if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
-        gfx_command comm;
-        comm.type = gfx_command::FRUSTUM;
-        comm.floats[0] = left;
-        comm.floats[1] = right;
-        comm.floats[2] = bottom;
-        comm.floats[3] = top;
-        comm.float5 = zNear;
-        comm.float6 = zFar;
-        getList(g_state->currentDisplayList)->commands.push_back(comm);
-    }
+  if (g_state->withinNewEndListBlock && g_state->displayListCallDepth == 0) {
+    gfx_command comm;
+    comm.type = gfx_command::FRUSTUM;
+    comm.floats[0] = left;
+    comm.floats[1] = right;
+    comm.floats[2] = bottom;
+    comm.floats[3] = top;
+    comm.float5 = near_val;
+    comm.float6 = far_val;
+    getList(g_state->currentDisplayList)->commands.push_back(comm);
+  }
 
-    CHECK_COMPILE_AND_EXECUTE(g_state);
+  CHECK_COMPILE_AND_EXECUTE(g_state);
 #endif
+
+  CHECK_WITHIN_BEGIN_END(g_state);
+
+#ifndef DISABLE_ERRORS
+  if(left == right || top == bottom || near_val == far_val || near_val < 0.0 || far_val < 0.0) {
+    setError(GL_INVALID_VALUE);
+    return;
+  }
+#endif
+
+  mat4 frustum = mat4::frustum(left, right, bottom, top, near_val, far_val);
+
+  switch(g_state->matrixMode) {
+    case (GL_MODELVIEW): {
+      g_state->modelviewMatrixStack[g_state->currentModelviewMatrix] = g_state->modelviewMatrixStack[g_state->currentModelviewMatrix] * frustum;
+    } break;
+    case (GL_PROJECTION): {
+      g_state->projectionMatrixStack[g_state->currentProjectionMatrix] = g_state->projectionMatrixStack[g_state->currentProjectionMatrix] * frustum;
+    } break;
+    case (GL_TEXTURE): {
+      g_state->textureMatrixStack[g_state->currentTextureMatrix] = g_state->textureMatrixStack[g_state->currentTextureMatrix] * frustum;
+    } break;
+  }
+}
+
+#else
+
+void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat zNear, GLfloat zFar) {
+    CHECK_NULL(g_state);
 
     CHECK_WITHIN_BEGIN_END(g_state);
 
@@ -364,4 +426,7 @@ void glFrustumf (GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLflo
         } break;
     }
 }
-}
+
+#endif // SPEC_GLES
+
+} // extern "C"

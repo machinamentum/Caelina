@@ -1,6 +1,6 @@
-#ifndef DISABLE_LISTS
-#include <GL/gl.h>
 #include "glImpl.h"
+
+#ifndef DISABLE_LISTS
 
 extern gfx_state *g_state;
 
@@ -215,5 +215,5 @@ void glCallList( GLuint list ) {
 }
 
 
-}
-#endif
+} // extern "C"
+#endif // DISABLE_LISTS

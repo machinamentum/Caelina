@@ -1,6 +1,3 @@
-
-#include <GL/gl.h>
-#include <GL/glext.h>
 #include "glImpl.h"
 
 extern gfx_state *g_state;
@@ -95,9 +92,13 @@ void glStencilOp( GLenum fail, GLenum zfail, GLenum zpass ) {
         case GL_ZERO:
         case GL_REPLACE:
         case GL_INCR:
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case GL_INCR_WRAP:
+#endif
         case GL_DECR:
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case GL_DECR_WRAP:
+#endif
         case GL_INVERT: {
 
         } break;
@@ -112,9 +113,13 @@ void glStencilOp( GLenum fail, GLenum zfail, GLenum zpass ) {
         case GL_ZERO:
         case GL_REPLACE:
         case GL_INCR:
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case GL_INCR_WRAP:
+#endif
         case GL_DECR:
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case GL_DECR_WRAP:
+#endif
         case GL_INVERT: {
 
         } break;
@@ -129,9 +134,13 @@ void glStencilOp( GLenum fail, GLenum zfail, GLenum zpass ) {
         case GL_ZERO:
         case GL_REPLACE:
         case GL_INCR:
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case GL_INCR_WRAP:
+#endif
         case GL_DECR:
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case GL_DECR_WRAP:
+#endif
         case GL_INVERT: {
 
         } break;

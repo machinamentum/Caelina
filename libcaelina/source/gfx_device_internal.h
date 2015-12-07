@@ -1,13 +1,8 @@
 #ifndef GFX_DEVICE_INTERNAL_H
 #define GFX_DEVICE_INTERNAL_H
 
-#include <3ds.h>
-#include <GL/gl.h>
-
 #include "vector.h"
 #include "matrix.h"
-
-#include "glImpl.h"
 
 #ifndef _3DS
 typedef int s32;
@@ -16,6 +11,7 @@ typedef char s8;
 #else
 #include <3ds.h>
 #endif
+
 struct gfx_state;
 struct gfx_texture;
 struct gfx_device_3ds;
@@ -345,6 +341,11 @@ struct gfx_state {
     u8 *endVBOData;
     GLsizei endVBOUnits;
 #endif
+
+    GLint vertexPtrSize = 0;
+    GLenum vertexPtrType = GL_FLOAT;
+    GLsizei vertexPtrStride = 0;
+    const GLvoid *vertexPtr = nullptr;
 };
 
 class gfx_device {

@@ -1,7 +1,6 @@
-#include <cstdlib>
-#include <GL/gl.h>
 #include "glImpl.h"
 #include "gfx_device.h"
+#include <cstdlib>
 
 extern gfx_state *g_state;
 
@@ -147,7 +146,11 @@ void glBindTexture( GLenum target, GLuint texture ) {
     }
 
 #ifndef DISABLE_ERRORS
-    if(target != GL_TEXTURE_2D && target != GL_TEXTURE_CUBE_MAP) {
+    if(target != GL_TEXTURE_2D
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
+       && target != GL_TEXTURE_CUBE_MAP
+#endif
+       ) {
         setError(GL_INVALID_ENUM);
         return;
     }
@@ -200,7 +203,11 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
         case (GL_ALPHA):
         case (GL_RGB):
         case (GL_RGBA):
+#ifndef SPEC_GLES
         case (GL_BGRA):
+#else
+        case (GL_BGRA_EXT):
+#endif
         case (GL_LUMINANCE):
         case (GL_LUMINANCE_ALPHA): {
 
@@ -238,7 +245,11 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
         case (GL_ALPHA):
         case (GL_RGB):
         case (GL_RGBA):
+#ifndef SPEC_GLES
         case (GL_BGRA):
+#else
+        case (GL_BGRA_EXT):
+#endif
         case (GL_LUMINANCE):
         case (GL_LUMINANCE_ALPHA): {
 
@@ -277,7 +288,13 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
     }
 
     if((type == GL_UNSIGNED_SHORT_4_4_4_4 || type == GL_UNSIGNED_SHORT_5_5_5_1)
-       && (format != GL_RGBA || format != GL_BGRA) ) {
+       && (format != GL_RGBA
+#ifndef SPEC_GLES
+       || format != GL_BGRA
+#else
+       || format != GL_BGRA_EXT
+#endif
+           ) ) {
         setError(GL_INVALID_OPERATION);
         return;
     }
@@ -321,8 +338,12 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
                             accum ++;
                         }
                     } break;
-
-                  case (GL_BGRA): {
+#ifndef SPEC_GLES
+                  case (GL_BGRA):
+#else
+                  case (GL_BGRA_EXT):
+#endif
+                  {
                     if(type == GL_UNSIGNED_BYTE) {
                       int index = (x + y * width) * 4;
                       GLubyte* bpixels = (GLubyte*)pixels;
@@ -378,7 +399,6 @@ void glTexImage2D( GLenum target, GLint level, GLint internalFormat, GLsizei wid
 void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels ) {
     CHECK_NULL(g_state);
 
-    //TODO implement algorithm for updating a tiled image
 #ifndef DISABLE_ERRORS
     if(target != GL_TEXTURE_2D) {
         setError(GL_INVALID_ENUM);
@@ -386,14 +406,20 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
     }
 
     switch (format) {
+#ifndef SPEC_GLES
         case GL_COLOR_INDEX:
         case GL_RED:
         case GL_GREEN:
         case GL_BLUE:
+#endif
         case GL_ALPHA:
         case GL_RGB:
         case GL_RGBA:
-        case GL_BGRA:
+#ifndef SPEC_GLES
+        case (GL_BGRA):
+#else
+        case (GL_BGRA_EXT):
+#endif
         case GL_LUMINANCE:
         case GL_LUMINANCE_ALPHA: {
 
@@ -408,12 +434,16 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
     switch (type) {
         case GL_UNSIGNED_BYTE:
         case GL_BYTE:
+#ifndef SPEC_GLES
         case GL_BITMAP:
+#endif
         case GL_UNSIGNED_SHORT:
         case GL_UNSIGNED_SHORT_5_5_5_1:
         case GL_SHORT:
         case GL_UNSIGNED_INT:
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case GL_INT:
+#endif
         case GL_FLOAT: {
 
         } break;
@@ -423,12 +453,14 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
             return;
         } break;
     }
-
+#ifndef SPEC_GLES
     if (type == GL_BITMAP && format != GL_COLOR_INDEX) {
         setError(GL_INVALID_ENUM);
         return;
     }
 #endif
+
+#endif // DISABLE_ERRORS
 
     gfx_texture* text = getTexture(g_state->currentBoundTexture);
 
@@ -470,7 +502,12 @@ void glTexSubImage2D( GLenum target, GLint level, GLint xoffset, GLint yoffset, 
                         }
                     } break;
 
-                  case (GL_BGRA): {
+#ifndef SPEC_GLES
+                  case (GL_BGRA):
+#else
+                  case (GL_BGRA_EXT):
+#endif
+                  {
                     if(type == GL_UNSIGNED_BYTE) {
                       int index = (x + y * width) * 4;
                       GLubyte* bpixels = (GLubyte*)pixels;
@@ -550,8 +587,18 @@ void glPixelStorei( GLenum pname, GLint param ) {
 static GPU_TEXTURE_WRAP_PARAM gl_tex_wrap(GLenum wrap) {
     switch (wrap) {
         case GL_CLAMP_TO_EDGE: return GPU_CLAMP_TO_EDGE;
+
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case GL_MIRRORED_REPEAT: return GPU_MIRRORED_REPEAT;
+#else
+        case GL_MIRRORED_REPEAT_OES: return GPU_MIRRORED_REPEAT;
+#endif
+
+#ifndef SPEC_GLES
         case GL_CLAMP_TO_BORDER: return GPU_CLAMP_TO_BORDER;
+#elif defined(SPEC_GLES2)
+        case GL_CLAMP_TO_BORDER_OES: return GPU_CLAMP_TO_BORDER;
+#endif
         case GL_REPEAT: return GPU_REPEAT;
     }
 
@@ -586,7 +633,10 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
 #ifndef DISABLE_ERRORS
     switch (target) {
         case GL_TEXTURE_2D:
-        case GL_TEXTURE_CUBE_MAP: {
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
+        case GL_TEXTURE_CUBE_MAP:
+#endif
+        {
 
         } break;
 
@@ -615,8 +665,16 @@ void glTexParameteri( GLenum target, GLenum pname, GLint param ) {
         case GL_TEXTURE_WRAP_T: {
             switch (param) {
                 case GL_CLAMP_TO_EDGE:
-                case GL_CLAMP_TO_BORDER:
+#ifndef SPEC_GLES
+              case GL_CLAMP_TO_BORDER:
+#elif defined(SPEC_GLES2)
+              case GL_CLAMP_TO_BORDER_OES:
+#endif
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
                 case GL_MIRRORED_REPEAT:
+#else
+                case GL_MIRRORED_REPEAT_OES:
+#endif
                 case GL_REPEAT: {
                 } break;
 

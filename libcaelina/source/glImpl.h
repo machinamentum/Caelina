@@ -8,6 +8,15 @@
 #define IMPL_MAX_LIST_CALL_DEPTH          64
 #define IMPL_MAX_LIGHTS                    8
 
+#ifdef SPEC_GLES
+#define DISABLE_LISTS 1
+#include <GLES/gl.h>
+#include <GLES/glext.h>
+#else
+#include <GL/gl.h>
+#include <GL/glext.h>
+#endif
+
 #include "gfx_device_internal.h"
 
 #define CHECK_NULL(x, ...) \
@@ -48,6 +57,5 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif

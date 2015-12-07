@@ -1,10 +1,14 @@
-#include "driver_3ds.h"
 #include <3ds.h>
-
+#include "glImpl.h"
 #include <cstring>
 #include "default_3ds_vsh_shbin.h"
 #include "clear_shader_vsh_shbin.h"
 #include "vertex_lighting_3ds_vsh_shbin.h"
+
+#define GPUREG_FIXEDATTRIB_INDEX GPUREG_0232
+#define GPUREG_FIXEDATTRIB_DATA0 GPUREG_0233
+#define GPUREG_FIXEDATTRIB_DATA1 GPUREG_0234
+#define GPUREG_FIXEDATTRIB_DATA2 GPUREG_0235
 
 #undef GPUCMD_AddSingleParam
 static void GPUCMD_AddSingleParam(u32 header, u32 param) {
@@ -196,11 +200,13 @@ static GPU_BLENDFACTOR gl_blendfactor(GLenum factor) {
         case GL_ONE_MINUS_SRC_ALPHA: return GPU_ONE_MINUS_SRC_ALPHA;
         case GL_DST_ALPHA: return GPU_DST_ALPHA;
         case GL_ONE_MINUS_DST_ALPHA: return GPU_ONE_MINUS_DST_ALPHA;
-        case GL_CONSTANT_COLOR: return GPU_CONSTANT_COLOR;
-        case GL_ONE_MINUS_CONSTANT_COLOR: return GPU_ONE_MINUS_CONSTANT_COLOR;
-        case GL_CONSTANT_ALPHA: return GPU_CONSTANT_ALPHA;
-        case GL_ONE_MINUS_CONSTANT_ALPHA: return GPU_ONE_MINUS_CONSTANT_ALPHA;
         case GL_SRC_ALPHA_SATURATE: return GPU_SRC_ALPHA_SATURATE;
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
+      case GL_CONSTANT_COLOR: return GPU_CONSTANT_COLOR;
+      case GL_ONE_MINUS_CONSTANT_COLOR: return GPU_ONE_MINUS_CONSTANT_COLOR;
+      case GL_CONSTANT_ALPHA: return GPU_CONSTANT_ALPHA;
+      case GL_ONE_MINUS_CONSTANT_ALPHA: return GPU_ONE_MINUS_CONSTANT_ALPHA;
+#endif
     }
 
     return GPU_ONE;
@@ -208,7 +214,9 @@ static GPU_BLENDFACTOR gl_blendfactor(GLenum factor) {
 
 static GPU_Primitive_t gl_primitive(GLenum mode) {
     switch(mode) {
+#ifndef SPEC_GLES
         case GL_QUADS:
+#endif
         case GL_TRIANGLES: return GPU_TRIANGLES;
         case GL_TRIANGLE_STRIP: return GPU_TRIANGLE_STRIP;
         default: return GPU_UNKPRIM;
@@ -238,9 +246,13 @@ static GPU_STENCILOP gl_stencilop(GLenum func) {
         case GL_ZERO: return GPU_STENCIL_ZERO;
         case GL_REPLACE: return GPU_STENCIL_REPLACE;
         case GL_INCR: return GPU_STENCIL_INCR;
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case GL_INCR_WRAP: return GPU_STENCIL_INCR_WRAP;
+#endif
         case GL_DECR: return GPU_STENCIL_DECR;
+#if !defined(SPEC_GLES) || defined(SPEC_GLES2)
         case GL_DECR_WRAP: return GPU_STENCIL_DECR_WRAP;
+#endif
         case GL_INVERT: return GPU_STENCIL_INVERT;
     }
 
@@ -470,6 +482,7 @@ void safeWaitForEvent(Handle event) {
 
 void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& modelview, u8 *data, GLuint units) {
     GPUCMD_SetBufferOffset(0);
+    GPUCMD_AddMaskedWrite(GPUREG_ATTRIBBUFFERS_FORMAT_HIGH, 0b111111111111 << 16, 0);
     setup_state(projection, modelview);
     SetAttributeBuffers(
                         4,
@@ -493,7 +506,7 @@ void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& mod
 
 void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelview) {
     GPUCMD_SetBufferOffset(0);
-    
+    GPUCMD_AddMaskedWrite(GPUREG_ATTRIBBUFFERS_FORMAT_HIGH, 0b111111111111 << 16, 0);
     setup_state(projection, modelview);
     VBO temp_vbo = VBO(g_state->vertexBuffer.size());
     temp_vbo.set_data(g_state->vertexBuffer);
@@ -519,7 +532,118 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     
 }
 
-void gfx_device_3ds::clearDepth(GLdouble d) {
+
+//Note: temp until ctrulib/great-refactor is supported
+static inline u32 floatrawbits(float f)
+{
+  union { float f; u32 i; } s;
+  s.f = f;
+  return s.i;
+}
+
+static inline u32 swap24(u32 s) {
+  union {
+    u32 i;
+    struct {
+      char p0;
+      char p1;
+      char p2;
+      char p3;
+    } b;
+  } u;
+  u.i = s;
+  u.b.p3 = u.b.p0;
+  u.b.p0 = u.b.p1;
+  u.b.p1 = u.b.p2;
+  u.b.p2 = u.b.p3;
+  u.b.p3 = 0;
+  return u.i;
+}
+
+u32 f32tof24(float f)
+{
+  u32 i = floatrawbits(f);
+
+  u32 mantissa = (i << 9) >>  9;
+  s32 exponent = (i << 1) >> 24;
+  u32 sign     = (i << 0) >> 31;
+
+  // Truncate mantissa
+  mantissa >>= 7;
+
+  // Re-bias exponent
+  exponent = exponent - 127 + 63;
+  if (exponent < 0)
+  {
+    // Underflow: flush to zero
+    return sign << 23;
+  }
+  else if (exponent > 0x7F)
+  {
+    // Overflow: saturate to infinity
+    return sign << 23 | 0x7F << 16;
+  }
+
+  return (sign << 23 | exponent << 16 | mantissa);
+}
+
+void gfx_device_3ds::render_vertices_array(GLenum mode, GLint first, GLsizei count, const mat4& projection, const mat4& modelview) {
+  GPUCMD_SetBufferOffset(0);
+  setup_state(projection, modelview);
+  // pos, tex, color, normal
+
+  SetAttributeBuffers(
+                      4,
+                      (u32*)osConvertVirtToPhys((u32)g_state->vertexPtr),
+                      GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
+                      GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
+                      0xFFE,
+                      0x3210,
+                      1,
+                      {0x0},
+                      {0x0},
+                      {1}
+                      );
+
+  // make tex, color, and normal immediate values
+  // TODO texcoordpointer
+  GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, 1);
+  GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, (f32tof24(1.0)));
+  GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA1, 0);
+  GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA2, 0);
+  // TODO colorpointer
+  GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, 2);
+  {
+    vec4 cc = g_state->currentVertexColor;
+    u32 cr = f32tof24(cc.x);
+    u32 cg = f32tof24(cc.y);
+    u32 cb = f32tof24(cc.z);
+    u32 ca = f32tof24(cc.w);
+    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, ((cb >> 16) & 0xFF) | (ca << 8));
+    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA1, ((cg >> 8) & 0xFFFF) | (((cb) & 0xFFFF) << 16));
+    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA2, cr | (((cg) & 0xFF) << 24));
+  }
+  // TODO normalpointer
+  GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, 3);
+  {
+    vec4 cc = g_state->currentVertexNormal;
+    u32 cr = f32tof24(cc.x);
+    u32 cg = f32tof24(cc.y);
+    u32 cb = f32tof24(cc.z);
+    u32 ca = f32tof24(0.0f);
+    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, (cr | ((cg & 0xFF) << 24)) );
+    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA1, ((cg >> 8) & 0xFFFF) | ((cb & 0xFFFF) << 16));
+    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA2, ((cb >> 16) & 0xFF) | (ca << 8));
+  }
+
+  GPU_DrawArray(gl_primitive(mode), first, count);
+  GPU_FinishDrawing();
+  GPUCMD_Finalize();
+  GPUCMD_FlushAndRun(NULL);
+  safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
+}
+
+void gfx_device_3ds::clearDepth(GLfloat d) {
   GPUCMD_SetBufferOffset(0);
 
   shaderProgramUse(&clear_shader);

@@ -1,56 +1,8 @@
-#include <GL/gl.h>
-
 #include "glImpl.h"
-#include "matrix.h"
 
-#ifdef _3DS
-#include "driver_3ds.h"
-#endif
-
-gfx_state* g_state = NULL;
+extern gfx_state *g_state;
 
 extern "C" {
-
-void* gfxCreateDevice(int width, int height, int flags) {
-    gfx_device_3ds *dev = new gfx_device_3ds(new gfx_state(), width, height);
-    dev->g_state->flags = flags;
-    dev->g_state->device = dev;
-    return dev;
-}
-
-void gfxDestroyDevice(void* device) {
-    if(device) delete (gfx_device*)device;
-}
-
-
-void *gfxMakeCurrent(void* device) {
-    void *previous = g_state;
-    if (!device) {
-        g_state = NULL;
-        return previous;
-    }
-    g_state = ((gfx_device*)device)->g_state;
-    return previous;
-}
-
-void gfxResize(int new_width, int new_height) {
-    CHECK_NULL(g_state);
-
-    gfx_device_3ds *state = (gfx_device_3ds*) g_state->device;
-    vramFree(state->gpuOut);
-    vramFree(state->gpuDOut);
-    state->gpuOut = (u32*)vramAlloc(new_width * new_height * 4);
-    state->gpuDOut = (u32*)vramAlloc(new_width * new_height * 4);
-    state->width = new_width;
-    state->height = new_height;
-}
-
-void gfxFlush(unsigned char* fb, int out_width, int out_height, int format) {
-    CHECK_NULL(g_state);
-    CHECK_NULL(fb);
-
-    g_state->device->flush(fb, out_width, out_height, format);
-}
 
 #ifndef DISABLE_LISTS
 gfx_display_list *getList(GLuint name) {
@@ -125,6 +77,8 @@ void glClearColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) 
                                clampf(alpha, 0.0f, 1.0f));
 }
 
+#ifndef SPEC_GLES
+
 void glClearDepth( GLclampd depth ) {
   CHECK_NULL(g_state);
 
@@ -141,6 +95,16 @@ void glClearDepth( GLclampd depth ) {
 
   g_state->clearDepth = clampf(depth, 0.0f, 1.0f);
 }
+
+#else
+
+void glClearDepthf (GLclampf depth) {
+  CHECK_NULL(g_state);
+
+  g_state->clearDepth = clampf(depth, 0.0f, 1.0f);
+}
+
+#endif
 
 void glDepthFunc( GLenum func ) {
   CHECK_NULL(g_state);
@@ -377,8 +341,6 @@ void glDisable( GLenum cap ) {
     }
 }
 
-
-
 void glDepthMask( GLboolean flag ) {
     CHECK_NULL(g_state);
 
@@ -396,6 +358,14 @@ void glDepthMask( GLboolean flag ) {
     CHECK_WITHIN_BEGIN_END(g_state);
 
     g_state->depthMask = flag != 0;
+}
+
+void glEnableClientState (GLenum array) {
+  // TODO
+}
+
+void glDisableClientState (GLenum array) {
+  // TODO
 }
 
 }
