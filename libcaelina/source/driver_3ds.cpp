@@ -219,6 +219,7 @@ static GPU_Primitive_t gl_primitive(GLenum mode) {
 #endif
         case GL_TRIANGLES: return GPU_TRIANGLES;
         case GL_TRIANGLE_STRIP: return GPU_TRIANGLE_STRIP;
+        case GL_TRIANGLE_FAN: return GPU_TRIANGLE_FAN;
         default: return GPU_UNKPRIM;
     }
 
