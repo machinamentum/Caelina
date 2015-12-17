@@ -1,19 +1,10 @@
 #include <3ds.h>
+#include <3ds/gpu/gx.h>
 #include "glImpl.h"
 #include <cstring>
 #include "default_3ds_vsh_shbin.h"
 #include "clear_shader_vsh_shbin.h"
 #include "vertex_lighting_3ds_vsh_shbin.h"
-
-#define GPUREG_FIXEDATTRIB_INDEX GPUREG_0232
-#define GPUREG_FIXEDATTRIB_DATA0 GPUREG_0233
-#define GPUREG_FIXEDATTRIB_DATA1 GPUREG_0234
-#define GPUREG_FIXEDATTRIB_DATA2 GPUREG_0235
-
-#undef GPUCMD_AddSingleParam
-static void GPUCMD_AddSingleParam(u32 header, u32 param) {
-    GPUCMD_Add(header, &param, 1);
-}
 
 static
 void SetAttributeBuffers(u8 totalAttributes, u32* baseAddress,
@@ -168,7 +159,7 @@ static void tileImage32(u32* src, u32* dst, int width, int height)
 
 static
 void safeWaitForEvent(Handle event);
-extern Handle gspEvents[GSPEVENT_MAX];
+extern Handle gspEvents[GSPGPU_EVENT_MAX];
 
 void gfx_device_3ds::repack_texture(gfx_texture &tex) {
     u32 size = 4*tex.width*tex.height;
@@ -220,10 +211,10 @@ static GPU_Primitive_t gl_primitive(GLenum mode) {
         case GL_TRIANGLES: return GPU_TRIANGLES;
         case GL_TRIANGLE_STRIP: return GPU_TRIANGLE_STRIP;
         case GL_TRIANGLE_FAN: return GPU_TRIANGLE_FAN;
-        default: return GPU_UNKPRIM;
+        default: return GPU_GEOMETRY_PRIM;
     }
 
-    return GPU_UNKPRIM;
+    return GPU_GEOMETRY_PRIM;
 }
 
 static GPU_TESTFUNC gl_writefunc(GLenum func) {
@@ -374,8 +365,8 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
     }
 
 
-    GPU_SetViewport((u32 *)osConvertVirtToPhys((u32)gpuDOut),
-                    (u32 *)osConvertVirtToPhys((u32)gpuOut),
+    GPU_SetViewport((u32 *)osConvertVirtToPhys(gpuDOut),
+                    (u32 *)osConvertVirtToPhys(gpuOut),
                     0, 0, width, height);
     {
         GLint x = g_state->scissorBox.x;
@@ -392,8 +383,8 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
     GPU_SetStencilOp(gl_stencilop(g_state->stencilOpSFail), gl_stencilop(g_state->stencilOpZFail), gl_stencilop(g_state->stencilOpZPass));
     GPU_WRITEMASK write_mask = (GPU_WRITEMASK)((g_state->colorMaskRed << 0) | (g_state->colorMaskGreen << 1) | (g_state->colorMaskBlue << 2) | (g_state->colorMaskAlpha << 3) | (g_state->depthMask << 4));
     GPU_SetDepthTestAndWriteMask(g_state->enableDepthTest, gl_depthfunc(g_state->depthFunc), write_mask);
-    GPUCMD_AddMaskedWrite(GPUREG_0062, 0x1, 0);
-    GPUCMD_AddWrite(GPUREG_0118, 0);
+    GPUCMD_AddMaskedWrite(GPUREG_EARLYDEPTH_TEST1, 0x1, 0);
+    GPUCMD_AddWrite(GPUREG_EARLYDEPTH_TEST2, 0);
 
     if (g_state->enableBlend) {
         GPU_SetAlphaBlending(
@@ -456,7 +447,7 @@ void gfx_device_3ds::setup_state(const mat4& projection, const mat4& modelview) 
 
             GPU_SetTexture(
                            GPU_TEXUNIT0,
-                           (u32*)osConvertVirtToPhys((u32)text->colorBuffer),
+                           (u32*)osConvertVirtToPhys(text->colorBuffer),
                            text->width,
                            text->height,
                            GPU_TEXTURE_MIN_FILTER(text->min_filter) |
@@ -487,7 +478,7 @@ void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& mod
     setup_state(projection, modelview);
     SetAttributeBuffers(
                         4,
-                        (u32*)osConvertVirtToPhys((u32)data),
+                        (u32*)osConvertVirtToPhys(data),
                         GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
                         GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
                         0xFF8,
@@ -501,8 +492,8 @@ void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& mod
     GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), 0, units);
     GPU_FinishDrawing();
     GPUCMD_Finalize();
-    GPUCMD_FlushAndRun(NULL);
-    safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
+    GPUCMD_FlushAndRun();
+    safeWaitForEvent(gspEvents[GSPGPU_EVENT_P3D]);
 }
 
 void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelview) {
@@ -514,7 +505,7 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
 
     SetAttributeBuffers(
                         4,
-                        (u32*)osConvertVirtToPhys((u32)temp_vbo.data),
+                        (u32*)osConvertVirtToPhys(temp_vbo.data),
                         GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
                         GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
                         0xFF8,
@@ -527,46 +518,10 @@ void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelvi
     GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), 0, temp_vbo.numVertices);
     GPU_FinishDrawing();
     GPUCMD_Finalize();
-    GPUCMD_FlushAndRun(NULL);
-    safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
+    GPUCMD_FlushAndRun();
+    safeWaitForEvent(gspEvents[GSPGPU_EVENT_P3D]);
     linearFree(temp_vbo.data);
     
-}
-
-
-//Note: temp until ctrulib/great-refactor is supported
-static inline u32 floatrawbits(float f)
-{
-  union { float f; u32 i; } s;
-  s.f = f;
-  return s.i;
-}
-
-u32 f32tof24(float f)
-{
-  u32 i = floatrawbits(f);
-
-  u32 mantissa = (i << 9) >>  9;
-  s32 exponent = (i << 1) >> 24;
-  u32 sign     = (i << 0) >> 31;
-
-  // Truncate mantissa
-  mantissa >>= 7;
-
-  // Re-bias exponent
-  exponent = exponent - 127 + 63;
-  if (exponent < 0)
-  {
-    // Underflow: flush to zero
-    return sign << 23;
-  }
-  else if (exponent > 0x7F)
-  {
-    // Overflow: saturate to infinity
-    return sign << 23 | 0x7F << 16;
-  }
-
-  return (sign << 23 | exponent << 16 | mantissa);
 }
 
 void gfx_device_3ds::render_vertices_array(GLenum mode, GLint first, GLsizei count, const mat4& projection, const mat4& modelview) {
@@ -576,7 +531,7 @@ void gfx_device_3ds::render_vertices_array(GLenum mode, GLint first, GLsizei cou
 
   SetAttributeBuffers(
                       4,
-                      (u32*)osConvertVirtToPhys((u32)g_state->vertexPtr),
+                      (u32*)osConvertVirtToPhys(g_state->vertexPtr),
                       GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
                       GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
                       0xFFE,
@@ -621,8 +576,8 @@ void gfx_device_3ds::render_vertices_array(GLenum mode, GLint first, GLsizei cou
   GPU_DrawArray(gl_primitive(mode), first, count);
   GPU_FinishDrawing();
   GPUCMD_Finalize();
-  GPUCMD_FlushAndRun(NULL);
-  safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
+  GPUCMD_FlushAndRun();
+  safeWaitForEvent(gspEvents[GSPGPU_EVENT_P3D]);
 }
 
 void gfx_device_3ds::clearDepth(GLfloat d) {
@@ -652,8 +607,8 @@ void gfx_device_3ds::clearDepth(GLfloat d) {
   }
 
 
-  GPU_SetViewport((u32 *)osConvertVirtToPhys((u32)gpuDOut),
-                  (u32 *)osConvertVirtToPhys((u32)gpuOut),
+  GPU_SetViewport((u32 *)osConvertVirtToPhys(gpuDOut),
+                  (u32 *)osConvertVirtToPhys(gpuOut),
                   0, 0, width, height);
   {
     GLint x = g_state->scissorBox.x;
@@ -669,8 +624,8 @@ void gfx_device_3ds::clearDepth(GLfloat d) {
   GPU_SetStencilTest(false, GPU_NEVER, stencil_ref, g_state->stencilFuncMask, g_state->stencilMask);
   GPU_SetStencilOp(GPU_STENCIL_KEEP, GPU_STENCIL_KEEP, GPU_STENCIL_KEEP);
   GPU_SetDepthTestAndWriteMask(true, GPU_ALWAYS, GPU_WRITE_DEPTH);
-  GPUCMD_AddMaskedWrite(GPUREG_0062, 0x1, 0);
-  GPUCMD_AddWrite(GPUREG_0118, 0);
+  GPUCMD_AddMaskedWrite(GPUREG_EARLYDEPTH_TEST1, 0x1, 0);
+  GPUCMD_AddWrite(GPUREG_EARLYDEPTH_TEST2, 0);
 
   u8 alpha_ref = (u8)(g_state->alphaTestRef * 255.0f);
   GPU_SetAlphaTest(false, GPU_NEVER, alpha_ref);
@@ -692,7 +647,7 @@ void gfx_device_3ds::clearDepth(GLfloat d) {
 
   SetAttributeBuffers(
                       4,
-                      (u32*)osConvertVirtToPhys((u32)clearQuadVBO->data),
+                      (u32*)osConvertVirtToPhys(clearQuadVBO->data),
                       GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
                       GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
                       0xFF8,
@@ -705,8 +660,8 @@ void gfx_device_3ds::clearDepth(GLfloat d) {
   GPU_DrawArray(gl_primitive(GL_TRIANGLES), 0, clearQuadVBO->numVertices);
   GPU_FinishDrawing();
   GPUCMD_Finalize();
-  GPUCMD_FlushAndRun(NULL);
-  safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
+  GPUCMD_FlushAndRun();
+  safeWaitForEvent(gspEvents[GSPGPU_EVENT_P3D]);
 }
 
 #define DISPLAY_TRANSFER_FLAGS \
@@ -716,8 +671,8 @@ void gfx_device_3ds::clearDepth(GLfloat d) {
 
 void gfx_device_3ds::flush(u8 *fb, int w, int h, int format) {
     
-    GX_SetDisplayTransfer(nullptr, (u32*)gpuOut, GX_BUFFER_DIM(width, height), (u32 *)fb, GX_BUFFER_DIM(w, h), DISPLAY_TRANSFER_FLAGS | GX_TRANSFER_OUT_FORMAT(format));
-    safeWaitForEvent(gspEvents[GSPEVENT_PPF]);
+    GX_DisplayTransfer((u32*)gpuOut, GX_BUFFER_DIM(width, height), (u32 *)fb, GX_BUFFER_DIM(w, h), DISPLAY_TRANSFER_FLAGS | GX_TRANSFER_OUT_FORMAT(format));
+    safeWaitForEvent(gspEvents[GSPGPU_EVENT_PPF]);
 }
 
 #define RGBA8(r,g,b,a) ( (((r)&0xFF)<<24) | (((g)&0xFF)<<16) | (((b)&0xFF)<<8) | (((a)&0xFF)<<0) )
@@ -748,8 +703,8 @@ void gfx_device_3ds::clear(float r, float g, float b, float a) {
   }
 
 
-  GPU_SetViewport((u32 *)osConvertVirtToPhys((u32)gpuDOut),
-                  (u32 *)osConvertVirtToPhys((u32)gpuOut),
+  GPU_SetViewport((u32 *)osConvertVirtToPhys(gpuDOut),
+                  (u32 *)osConvertVirtToPhys(gpuOut),
                   0, 0, width, height);
   {
     GLint x = g_state->scissorBox.x;
@@ -766,8 +721,8 @@ void gfx_device_3ds::clear(float r, float g, float b, float a) {
   GPU_SetStencilOp(GPU_STENCIL_KEEP, GPU_STENCIL_KEEP, GPU_STENCIL_KEEP);
   GPU_WRITEMASK write_mask = (GPU_WRITEMASK)((g_state->colorMaskRed << 0) | (g_state->colorMaskGreen << 1) | (g_state->colorMaskBlue << 2) | (g_state->colorMaskAlpha << 3));
   GPU_SetDepthTestAndWriteMask(false, GPU_ALWAYS, write_mask);
-  GPUCMD_AddMaskedWrite(GPUREG_0062, 0x1, 0);
-  GPUCMD_AddWrite(GPUREG_0118, 0);
+  GPUCMD_AddMaskedWrite(GPUREG_EARLYDEPTH_TEST1, 0x1, 0);
+  GPUCMD_AddWrite(GPUREG_EARLYDEPTH_TEST2, 0);
 
   u8 alpha_ref = (u8)(g_state->alphaTestRef * 255.0f);
   GPU_SetAlphaTest(false, GPU_NEVER, alpha_ref);
@@ -789,7 +744,7 @@ void gfx_device_3ds::clear(float r, float g, float b, float a) {
 
   SetAttributeBuffers(
                       4,
-                      (u32*)osConvertVirtToPhys((u32)clearQuadVBO->data),
+                      (u32*)osConvertVirtToPhys(clearQuadVBO->data),
                       GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
                       GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
                       0xFF8,
@@ -802,6 +757,6 @@ void gfx_device_3ds::clear(float r, float g, float b, float a) {
   GPU_DrawArray(gl_primitive(GL_TRIANGLES), 0, clearQuadVBO->numVertices);
   GPU_FinishDrawing();
   GPUCMD_Finalize();
-  GPUCMD_FlushAndRun(NULL);
-  safeWaitForEvent(gspEvents[GSPEVENT_P3D]);
+  GPUCMD_FlushAndRun();
+  safeWaitForEvent(gspEvents[GSPGPU_EVENT_P3D]);
 }
