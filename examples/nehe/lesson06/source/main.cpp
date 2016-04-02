@@ -34,7 +34,7 @@ GLfloat     yrot;                               // Y Rotation ( NEW )
 GLfloat     zrot;                               // Z Rotation ( NEW )
 
 int LoadGLTextures() {
-  Textures[0] = LoadPNG("RTS_Crate.png"); // http://opengameart.org/content/2d-wooden-box
+  Textures[0] = LoadPNG("romfs:/RTS_Crate.png"); // http://opengameart.org/content/2d-wooden-box
   return Textures[0] != 0;
 }
 
