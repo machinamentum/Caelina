@@ -161,18 +161,40 @@ static
 void safeWaitForEvent(Handle event);
 extern Handle gspEvents[GSPGPU_EVENT_MAX];
 
+static Result GX_RequestDmaFlush(u32* src, u32* dst, u32 length)
+{
+    u32 gxCommand[0x8];
+    gxCommand[0]=0x00; //CommandID
+    gxCommand[1]=(u32)src; //source address
+    gxCommand[2]=(u32)dst; //destination address
+    gxCommand[3]=length; //size
+    gxCommand[4]=gxCommand[5]=gxCommand[6]=gxCommand[7]=0x2;
+
+    return gspSubmitGxCommand(gxCmdBuf, gxCommand);
+}
+
 void gfx_device_3ds::repack_texture(gfx_texture &tex) {
     u32 size = 4*tex.width*tex.height;
     size = ((size - (size >> (2*(0+1)))) * 4) / 3;
-//    u32 *dst = (u32 *)linearAlloc(size);
-    if (!tex.colorBuffer) tex.colorBuffer = (u8 *)linearAlloc(size);
-    tileImage32((u32*)tex.unpackedColorBuffer, (u32 *)tex.colorBuffer, tex.width, tex.height);
-    tex.extdata = 0;
+    u32 *dst = (u32 *)linearMemAlign(size, 0x80);
+    tileImage32((u32*)tex.unpackedColorBuffer, dst, tex.width, tex.height);
+
+    if (size > vramSpaceFree()) {
+        tex.colorBuffer = (GLubyte*)dst;
+        tex.extdata = 0;
+    } else {
+        if (!tex.colorBuffer) tex.colorBuffer = (GLubyte*)vramMemAlign(size, 0x80);
+        GX_RequestDmaFlush(dst, (u32*)tex.colorBuffer, size);
+        safeWaitForEvent(gspEvents[GSPGPU_EVENT_DMA]);
+        linearFree(dst);
+        tex.extdata = 1;
+    }
 }
 
 void gfx_device_3ds::free_texture(gfx_texture &tex) {
     if (tex.extdata) {
         vramFree(tex.colorBuffer);
+        linearFree(tex.unpackedColorBuffer);
     } else {
         linearFree(tex.unpackedColorBuffer);
         linearFree(tex.colorBuffer);

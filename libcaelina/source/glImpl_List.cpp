@@ -214,6 +214,28 @@ void glCallList( GLuint list ) {
     }
 }
 
+void glDeleteLists(	GLuint list, GLsizei range ) {
+    CHECK_NULL(g_state);
+    CHECK_WITHIN_BEGIN_END(g_state);
+
+#ifndef DISABLE_ERRORS
+    if (range < 0) {
+        setError(GL_INVALID_VALUE);
+        return;
+    }
+#endif
+
+    for (GLuint i = list; i < list + range; ++i) {
+        gfx_display_list *dl = getList(list);
+        if (!dl) continue;
+        for (gfx_command &comm : dl->commands) {
+            if (comm.vdata) linearFree(comm.vdata);
+            comm.vdata = nullptr;
+        }
+        g_state->displayLists.erase(dl);
+    }
+}
+
 
 } // extern "C"
 #endif // DISABLE_LISTS
