@@ -126,6 +126,14 @@ void glTexCoord4f( GLfloat s, GLfloat t, GLfloat r, GLfloat q ) {
     g_state->currentTextureCoord = vec4(s, t, r, q);
 }
 
+void glColor4ub( GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha ) {
+    GLfloat r = (GLfloat)red / 255.0f;
+    GLfloat g = (GLfloat)green / 255.0f;
+    GLfloat b = (GLfloat)blue / 255.0f;
+    GLfloat a = (GLfloat)alpha / 255.0f;
+    glColor4f(r, g, b, a);
+}
+
 void glColor3ub( GLubyte red, GLubyte green, GLubyte blue ) {
     GLfloat r = (GLfloat)red / 255.0f;
     GLfloat g = (GLfloat)green / 255.0f;
