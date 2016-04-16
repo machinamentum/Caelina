@@ -30,7 +30,7 @@ CFLAGS	+= -DSPEC_GLES -Wall -O2 \
 		$(ARCH)
 
 CFLAGS	+=	$(INCLUDE) -DARM11 -D_3DS
-CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11 -fomit-frame-pointer
+CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions -std=gnu++11 -fomit-frame-pointer -Wno-deprecated-declarations
 
 ASFLAGS	:= $(ARCH)
 

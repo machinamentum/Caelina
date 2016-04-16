@@ -31,6 +31,8 @@ struct gfx_device_3ds : public gfx_device {
     void free_texture(gfx_texture& tex);
     u8 *cache_vertex_list(GLuint *size);
     void setup_state(const mat4& projection, const mat4& modelview);
+    void flush_commands();
+    void flush_wait_commands();
 };
 
 #endif

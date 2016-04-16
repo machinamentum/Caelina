@@ -360,6 +360,18 @@ void glDepthMask( GLboolean flag ) {
     g_state->depthMask = flag != 0;
 }
 
+void glFlush ( void ) {
+    CHECK_NULL(g_state);
+    CHECK_WITHIN_BEGIN_END();
+    g_state->device->flush_commands();
+}
+
+void glFinish ( void ) {
+    CHECK_NULL(g_state);
+    CHECK_WITHIN_BEGIN_END();
+    g_state->device->flush_wait_commands();
+}
+
 void glEnableClientState (GLenum array) {
   // TODO
 }

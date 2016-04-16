@@ -519,31 +519,62 @@ void gfx_device_3ds::render_vertices_vbo(const mat4& projection, const mat4& mod
 }
 
 void gfx_device_3ds::render_vertices(const mat4& projection, const mat4& modelview) {
-    GPUCMD_SetBufferOffset(0);
-    GPUCMD_AddMaskedWrite(GPUREG_ATTRIBBUFFERS_FORMAT_HIGH, 0b111111111111 << 16, 0);
+    GPUCMD_AddWrite(GPUREG_ATTRIBBUFFERS_FORMAT_LOW, GPU_ATTRIBFMT(0, 3, GPU_FLOAT)
+                    | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) | GPU_ATTRIBFMT(2, 4, GPU_FLOAT)
+                    | GPU_ATTRIBFMT(3, 4, GPU_FLOAT));
+    GPUCMD_AddWrite(GPUREG_ATTRIBBUFFERS_FORMAT_HIGH, ((4 - 1) << 28) | (0xFFF << 16));
     setup_state(projection, modelview);
-    VBO temp_vbo = VBO(g_state->vertexBuffer.size());
-    temp_vbo.set_data(g_state->vertexBuffer);
 
-    SetAttributeBuffers(
-                        4,
-                        (u32*)osConvertVirtToPhys(temp_vbo.data),
-                        GPU_ATTRIBFMT(0, 3, GPU_FLOAT) | GPU_ATTRIBFMT(1, 4, GPU_FLOAT) |
-                        GPU_ATTRIBFMT(2, 4, GPU_FLOAT) | GPU_ATTRIBFMT(3, 4, GPU_FLOAT),
-                        0xFF8,
-                        0x3210,
-                        1,
-                        {0x0},
-                        {0x3210},
-                        {4}
-                        );
-    GPU_DrawArray(gl_primitive(g_state->vertexDrawMode), 0, temp_vbo.numVertices);
-    GPU_FinishDrawing();
-    GPUCMD_Finalize();
-    GPUCMD_FlushAndRun();
-    safeWaitForEvent(gspEvents[GSPGPU_EVENT_P3D]);
-    linearFree(temp_vbo.data);
-    
+    GPUCMD_AddMaskedWrite(GPUREG_PRIMITIVE_CONFIG, 2, gl_primitive(g_state->vertexDrawMode) << 8);
+    GPUCMD_AddWrite(GPUREG_RESTART_PRIMITIVE, 1);
+    GPUCMD_AddWrite(GPUREG_INDEXBUFFER_CONFIG, 0x80000000);
+    GPUCMD_AddMaskedWrite(GPUREG_GEOSTAGE_CONFIG2, 3, 0x001);
+    GPUCMD_AddMaskedWrite(GPUREG_START_DRAW_FUNC0, 1, 0);
+    GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_INDEX, 0xF);
+
+    for (u32 i = 0; i < g_state->vertexBuffer.size(); ++i)
+    {
+        vertex &v = g_state->vertexBuffer[i];
+        vec4 &cc = v.position;
+        u32 cr = f32tof24(cc.x);
+        u32 cg = f32tof24(cc.y);
+        u32 cb = f32tof24(cc.z);
+        u32 ca = f32tof24(cc.w);
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, ((cb >> 16) & 0xFF) | (ca << 8));
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA1, ((cg >> 8) & 0xFFFF) | (((cb) & 0xFFFF) << 16));
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA2, cr | (((cg) & 0xFF) << 24));
+
+        cc = v.textureCoord;
+        cr = f32tof24(cc.x);
+        cg = f32tof24(cc.y);
+        cb = f32tof24(cc.z);
+        ca = f32tof24(cc.w);
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, ((cb >> 16) & 0xFF) | (ca << 8));
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA1, ((cg >> 8) & 0xFFFF) | (((cb) & 0xFFFF) << 16));
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA2, cr | (((cg) & 0xFF) << 24));
+
+        cc = v.color;
+        cr = f32tof24(cc.x);
+        cg = f32tof24(cc.y);
+        cb = f32tof24(cc.z);
+        ca = f32tof24(cc.w);
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, ((cb >> 16) & 0xFF) | (ca << 8));
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA1, ((cg >> 8) & 0xFFFF) | (((cb) & 0xFFFF) << 16));
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA2, cr | (((cg) & 0xFF) << 24));
+
+        cc = v.normal;
+        cr = f32tof24(cc.x);
+        cg = f32tof24(cc.y);
+        cb = f32tof24(cc.z);
+        ca = f32tof24(cc.w);
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA0, ((cb >> 16) & 0xFF) | (ca << 8));
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA1, ((cg >> 8) & 0xFFFF) | (((cb) & 0xFFFF) << 16));
+        GPUCMD_AddWrite(GPUREG_FIXEDATTRIB_DATA2, cr | (((cg) & 0xFF) << 24));
+    }
+
+    GPUCMD_AddMaskedWrite(GPUREG_START_DRAW_FUNC0, 1, 1);
+    GPUCMD_AddMaskedWrite(GPUREG_GEOSTAGE_CONFIG2, 1, 0);
+    GPUCMD_AddWrite(GPUREG_VTX_FUNC, 1);
 }
 
 void gfx_device_3ds::render_vertices_array(GLenum mode, GLint first, GLsizei count, const mat4& projection, const mat4& modelview) {
@@ -603,8 +634,6 @@ void gfx_device_3ds::render_vertices_array(GLenum mode, GLint first, GLsizei cou
 }
 
 void gfx_device_3ds::clearDepth(GLfloat d) {
-  GPUCMD_SetBufferOffset(0);
-
   shaderProgramUse(&clear_shader);
 
   float mu_proj[4*4];
@@ -680,10 +709,6 @@ void gfx_device_3ds::clearDepth(GLfloat d) {
                       {4}
                       );
   GPU_DrawArray(gl_primitive(GL_TRIANGLES), 0, clearQuadVBO->numVertices);
-  GPU_FinishDrawing();
-  GPUCMD_Finalize();
-  GPUCMD_FlushAndRun();
-  safeWaitForEvent(gspEvents[GSPGPU_EVENT_P3D]);
 }
 
 #define DISPLAY_TRANSFER_FLAGS \
@@ -699,7 +724,6 @@ void gfx_device_3ds::flush(u8 *fb, int w, int h, int format) {
 
 #define RGBA8(r,g,b,a) ( (((r)&0xFF)<<24) | (((g)&0xFF)<<16) | (((b)&0xFF)<<8) | (((a)&0xFF)<<0) )
 void gfx_device_3ds::clear(float r, float g, float b, float a) {
-  GPUCMD_SetBufferOffset(0);
 
   shaderProgramUse(&clear_shader);
 
@@ -777,8 +801,19 @@ void gfx_device_3ds::clear(float r, float g, float b, float a) {
                       {4}
                       );
   GPU_DrawArray(gl_primitive(GL_TRIANGLES), 0, clearQuadVBO->numVertices);
-  GPU_FinishDrawing();
-  GPUCMD_Finalize();
-  GPUCMD_FlushAndRun();
-  safeWaitForEvent(gspEvents[GSPGPU_EVENT_P3D]);
+}
+
+void gfx_device_3ds::flush_commands() {
+    GPU_FinishDrawing();
+    GPUCMD_Finalize();
+    GPUCMD_FlushAndRun();
+    GPUCMD_SetBufferOffset(0);
+}
+
+void gfx_device_3ds::flush_wait_commands() {
+    GPU_FinishDrawing();
+    GPUCMD_Finalize();
+    GPUCMD_FlushAndRun();
+    safeWaitForEvent(gspEvents[GSPGPU_EVENT_P3D]);
+    GPUCMD_SetBufferOffset(0);
 }
